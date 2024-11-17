@@ -1,0 +1,19 @@
+# System Files
+.DS_Store
+
+# Cache Files
+__pycache__/
+.mypy_cache/
+
+# Virtual Environments
+.venv/
+.vscode/
+.idea
+
+# Project Files
+*.code-workspace
+README.md
+.git/
+.gitignore
+.env-template
+docker/
