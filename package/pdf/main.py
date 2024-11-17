@@ -74,7 +74,6 @@ class PDFProcessor:
 
         page_elements = [(element.y1, element) for element in page._objs]
         page_elements.sort(key=lambda a: a[0], reverse=True)
-
         for i, component in enumerate(page_elements):
             pos = component[0]
             element = component[1]
@@ -101,7 +100,8 @@ class PDFProcessor:
 
                     if element.y0 >= lower_side and element.y1 <= upper_side:
                         pass
-                elif not isinstance(page_elements[i + 1][1], LTRect):
+                elif i + 1 < len(page_elements) and not isinstance(page_elements[i + 1][1], LTRect):
+                    # Проверка на выход за пределы списка
                     table_extraction_flag = False
                     first_element = True
                     table_num += 1

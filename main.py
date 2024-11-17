@@ -1,11 +1,9 @@
 import asyncio
-
 from internal.config import settings
 from internal.dto import OpenAIConversation
 
-from package import pdf
-
 from package.openai.client import ChatGptAPIClient
+from package.pdf.main import PDFProcessor  # Ваш PDFProcessor
 
 messages = [
     {"role": "system",
@@ -18,26 +16,14 @@ messages = [
 ]
 
 content = ''
-STEP = 10
+STEP = 7  # Шаг обработки страниц
 OUTPUT_FILE = 'summary.txt'  # Имя файла для записи результата
 
 
-def format_text(text: str) -> str:
-    """
-    Форматирует текст:
-    - Заменяет `**` на жирный текст.
-    - Добавляет отступы после каждого абзаца.
-    """
-    # Преобразование символов для форматирования
-    formatted = text.replace('**', '**')  # Для жирного текста оставляем `**` как есть.
-
-    # Разбиваем текст на абзацы и добавляем отступы
-    paragraphs = formatted.split('\n')
-    structured_text = '\n\n'.join(paragraph.strip() for paragraph in paragraphs).strip()
-    return structured_text
-
-
 async def main(content: str):
+    """
+    Отправляет текст в OpenAI API для обработки.
+    """
     client = ChatGptAPIClient(settings.openai)
     messages[1]['content'] = content
     requests = OpenAIConversation(
@@ -50,28 +36,31 @@ async def main(content: str):
 
 
 with open('files/Инфаркт миокарда.pdf', 'rb') as pdf_file:
-    processor = pdf.PDFProcessor(pdf_file)
-    total_pages = processor.pages
+    processor = PDFProcessor(pdf_file)
+    total_pages = processor.pages  # Получаем общее количество страниц
     i = 0
 
     while i < total_pages:
-        print(f"Processing pages {i} to {i + total_pages - 1}")
-        texts = ''
+        # Ограничение для диапазона страниц
+        start_page = i
+        end_page = max(i + STEP, total_pages)
 
-        # Обрабатываем страницы
-        processor.process_pdf(start_page=i, end_page=min(i + STEP, total_pages))
-        for item in processor.extract():
-            texts += f'{item}\n'
+        print(f"Processing pages {start_page + 1} to {end_page}")
 
-        # Генерация резюме
-        raw_summary = asyncio.run(main(content=texts))
+        # Обработка страниц
+        processor.process_pdf(start_page=start_page, end_page=end_page)
+        extracted_texts = '\n'.join(processor.extract())  # Извлекаем текст из диапазона
 
-        # Форматирование текста
-        formatted_summary = format_text(raw_summary)
+        if not extracted_texts.strip():
+            print(f"No text extracted from pages {start_page + 1} to {end_page}")
+        else:
+            # Генерация резюме через OpenAI API
+            raw_summary = asyncio.run(main(content=extracted_texts))
 
-        # Добавляем текст с разметкой
-        content += f'\n--- Страницы {i + 1} - {min(i + STEP, total_pages)} ---\n\n{formatted_summary}\n\n'
+            # Добавляем текст с разметкой
+            content += f'\n--- Страницы {start_page + 1} - {end_page} ---\n\n{raw_summary}\n\n'
 
+        # Увеличиваем шаг
         i += STEP
 
 # Запись результата в файл
