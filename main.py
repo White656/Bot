@@ -1,4 +1,7 @@
 import asyncio
+import ssl
+import certifi
+
 from internal.config import settings
 from internal.dto import OpenAIConversation
 
@@ -16,15 +19,14 @@ messages = [
 ]
 
 content = ''
-STEP = 7  # Шаг обработки страниц
-OUTPUT_FILE = 'summary.txt'  # Имя файла для записи результата
+STEP = 7
+OUTPUT_FILE = 'summary.txt'
 
 
 async def main(content: str):
-    """
-    Отправляет текст в OpenAI API для обработки.
-    """
-    client = ChatGptAPIClient(settings.openai)
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    client = ChatGptAPIClient(settings.openai, ssl_context=ssl_context)
+
     messages[1]['content'] = content
     requests = OpenAIConversation(
         model=settings.openai.model,
@@ -35,9 +37,9 @@ async def main(content: str):
     return result['choices'][0]['message']['content']
 
 
-with open('files/Инфаркт миокарда.pdf', 'rb') as pdf_file:
+with open('files/Хобл.pdf', 'rb') as pdf_file:
     processor = PDFProcessor(pdf_file)
-    total_pages = processor.pages  # Получаем общее количество страниц
+    total_pages = processor.pages
     i = 0
 
     while i < total_pages:

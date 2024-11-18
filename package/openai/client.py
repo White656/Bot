@@ -1,10 +1,11 @@
+from ssl import SSLContext
 from typing import Any, AsyncIterator, Awaitable, Callable, Literal, Coroutine, Protocol
 
 from aiohttp.client import ClientResponse, ClientSession
 from package.openai.exceptions import OpenAIRequestError
 
 from internal.config import settings
-from internal.dto import OpenAIConversation,OpenAIEmbeddings
+from internal.dto import OpenAIConversation, OpenAIEmbeddings
 
 
 class OpenAIConfig(Protocol):
@@ -17,13 +18,14 @@ class OpenAIConfig(Protocol):
 
 class ChatGptAPIClient(object):
 
-    def __init__(self, config: OpenAIConfig):
+    def __init__(self, config: OpenAIConfig, ssl_context: SSLContext = None):
         self._config = config
         self.headers = {
             'Authorization': f'Bearer {self._config.token}',
             'Content-Type': 'application/json',
         }
         self.api_url = config.url
+        self.ssl_context = ssl_context
 
     async def completions(self, request: OpenAIConversation) -> Coroutine[Any, Any, Any]:
         return await self._make_request(
@@ -53,7 +55,7 @@ class ChatGptAPIClient(object):
             query: dict[str, Any] | None = None,
     ) -> Any:
         async with ClientSession(headers=self.headers) as session:
-            async with getattr(session, method)(url, json=json, params=query) as response:
+            async with getattr(session, method)(url, json=json, params=query, ssl=self.ssl_context) as response:
                 if not response.ok:
                     response_data: dict[str, Any] = await response.json()
                     raise OpenAIRequestError(
