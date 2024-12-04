@@ -6,3 +6,5 @@ pydantic>=1.10.0
 pydantic-settings>=1.3.0
 openai>=0.27.8
 pytesseract
+tiktoken
+langchain-openai
