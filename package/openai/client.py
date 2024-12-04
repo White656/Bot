@@ -5,20 +5,45 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage, AIMessage
 import tiktoken
 from sqlalchemy.orm.instrumentation import manager_of_class
-from package.openai import PromptManager
 
+from package.openai import PromptManager
 
 
 class ChatGPTClient:
     def __init__(
             self,
             api_key: SecretStr,
-            model_name: str = 'gpt-4',
+            model_name: str = 'gpt-4o-mini',
             embeddings_model_name: str = 'text-embedding-ada-002',
             system_prompt: Optional[str] = None,
+            mathematical_percent: Optional[int] = 20,
     ):
+        """
+        Initializes the configuration for interacting with OpenAI's GPT-4 and text
+        embedding models. It sets up the necessary components to communicate with the
+        OpenAI API, including chat and embeddings model instances, tokenizers, and the
+        system prompt if provided. The class handles token limit settings based on the
+        specified models and manages initial chat history.
+
+        Args:
+            api_key: A secret string representing the OpenAI API key required for
+                authentication.
+            model_name: The name of the chat model to be used, defaulting to 'gpt-4'.
+                Determines which model to use for chat operations.
+            embeddings_model_name: The name of the embeddings model to be used,
+                defaulting to 'text-embedding-ada-002'. It defines which model is to be
+                utilized for handling text embeddings.
+            system_prompt: An optional string for setting a system-level prompt
+                message. If provided, it initializes the conversation context with this
+                prompt.
+            mathematical_p: An optional integer defining a mathematical parameter,
+                defaulting to 100. This parameter may be used for internal calculations
+                or configurations.
+
+        """
         self._api_key = api_key
         self.model_name = model_name
+        self.math_p = mathematical_percent
         self.embeddings_model_name = embeddings_model_name
         self.chat_model = ChatOpenAI(
             openai_api_key=self._api_key,
@@ -41,7 +66,9 @@ class ChatGPTClient:
             self.chat_history.append(system_message)
 
         # Установка лимитов токенов в зависимости от моделей
-        self.max_tokens = self.get_model_token_limit(self.model_name)
+
+        self.token = self.get_model_token_limit(self.model_name)
+        self.max_tokens = self.token - int((self.token / 100) * self.math_p)
         self.embeddings_max_tokens = self.get_model_token_limit(self.embeddings_model_name)
 
     def get_model_token_limit(self, model_name: str) -> int:
@@ -50,6 +77,8 @@ class ChatGPTClient:
             'gpt-3.5-turbo': 4096,
             'gpt-3.5-turbo-16k': 16384,
             'gpt-4': 8192,
+            # 'gpt-4o-mini': 16384,
+            'gpt-4o-mini': 2100,
             'gpt-4-32k': 32768,
             'text-embedding-ada-002': 8191  # Лимит для модели эмбеддингов
         }
@@ -67,7 +96,7 @@ class ChatGPTClient:
                 chunks = self.split_text_into_chunks(
                     text,
                     self.embeddings_max_tokens,
-                    tokenizer=self.embeddings_tokenizer
+                    tokenizer=self.embeddings_tokenizer,
                 )
                 valid_texts.extend(chunks)
         return self.embeddings_model.embed_documents(valid_texts)
@@ -91,14 +120,6 @@ class ChatGPTClient:
 
     async def send_message(self, message: str) -> str:
         # Проверяем, не превышает ли сообщение лимит токенов модели
-        message_tokens = self.tokenize_text(message)
-        # Считаем общее количество токенов в истории чата
-        total_tokens = sum(len(self.tokenize_text(msg.content)) for msg in self.chat_history) + len(message_tokens)
-
-        if total_tokens > self.max_tokens:
-            # Обрезаем историю чата, чтобы не превышать лимит
-            self.trim_chat_history(len(message_tokens))
-
         human_message = HumanMessage(content=message)
         self.chat_history.append(human_message)
         assistant_message = await self.chat_model.ainvoke(self.chat_history)

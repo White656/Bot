@@ -1,9 +1,12 @@
 import asyncio
+
+from PIL.XbmImagePlugin import xbm_head
 from pydantic import SecretStr
 
 from package.openai import PromptManager
 from package.openai.client import ChatGPTClient
 from internal.config import settings
+from package.pdf import PDFProcessor
 
 # Пример использования:
 
@@ -11,9 +14,8 @@ manager_prompt = PromptManager()
 
 
 async def main():
-    # Замените 'your-api-key' на ваш реальный API ключ OpenAI
     api_key = SecretStr(settings.openai.token)
-    system_prompt = manager_prompt.get_prompt('translate')
+    system_prompt = manager_prompt.get_prompt('summary')
 
     client = ChatGPTClient(
         api_key,
@@ -21,38 +23,28 @@ async def main():
         system_prompt=system_prompt,
     )
 
-    # Создание эмбеддингов
-    texts = [
-        "Это пример текста для создания эмбеддингов.",
-        "Еще один текст для эмбеддингов."
-    ]
-    embeddings = client.create_embeddings(texts)
-    print("Эмбеддинги:", embeddings)
+    pdf_path = 'files/Инфаркт миокарда.pdf'
 
-    # Токенизация текста
-    text = "Это пример текста для токенизации."
-    tokens = client.tokenize_text(text)
-    print("Токены:", tokens)
+    # embeddings = client.create_embeddings(texts)
+    # print("Эмбеддинги:", embeddings)
 
     # Разбиение текста на части
-    long_text = "Это очень длинный текст, который мы хотим разбить на части, чтобы не превышать лимит токенов одного запроса."
+    long_text = ""
+    with open(pdf_path, 'rb') as pdf_file:
+        pdf_processor = PDFProcessor(pdf_file)
+        pdf_processor.process_pdf(start_page=0, end_page=pdf_processor.pages)
+        for page_content in pdf_processor.extract():
+            long_text += f"{page_content}\n"
+
     chunks = client.split_text_into_chunks(long_text, chunk_size=client.max_tokens)
-    print("Текст, разбитый на части:")
     for i, chunk in enumerate(chunks):
-        print(f"Часть {i + 1}:", chunk)
+        # print(chunk)
         print("Количество токенов в части:", len(client.tokenize_text(chunk)))
 
-    # Отправка сообщений в сессии чата
-    messages = [
-        "Здравствуйте, как у вас дела?",
-        "Можете объяснить законы Ньютона?",
-        "Какая столица Франции?"
-    ]
-
-    for message in messages:
-        response = await client.send_message(message)
-        print("Пользователь:", message)
-        print("ChatGPT:", response)
+    for i, chunk in enumerate(chunks):
+        response = await client.send_message(chunk)
+        print(response)
+        print(f"--------- Page {i + 1} ----------")
 
 
 if __name__ == "__main__":
