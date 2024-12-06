@@ -1,53 +1,91 @@
 import asyncio
 
+from openai import embeddings
 from pydantic import SecretStr
 
+from package.milvus import MilvusClient
 from package.openai import PromptManager
 from package.openai.client import ChatGPTClient
 from internal.config import settings
 from package.pdf import PDFProcessor
-
 from markdown_pdf import MarkdownPdf
 from markdown_pdf import Section
 
-manager_prompt = PromptManager()
+# Конфигурация
+MILVUS_HOST = "localhost"
+MILVUS_PORT = "19530"
+COLLECTION_NAME = "pdf_embeddings"
+DIMENSION = 1536
 
 
-async def main():
-    api_key = SecretStr(settings.openai.token)
-    system_prompt = manager_prompt.get_prompt('summary')
-
-    client = ChatGPTClient(
-        api_key,
-        model_name='gpt-4o-mini',
-        embeddings_model_name='text-embedding-ada-002',
-        system_prompt=system_prompt,
-    )
-
+async def process_pdf(client, milvus_client, pdf_path):
+    """
+    Обрабатываем PDF, создаем эмбеддинги, проверяем их в Milvus, записываем новые.
+    """
     pdf = MarkdownPdf(toc_level=3)
-    pdf_path = 'files/Инфаркт миокарда.pdf'
-
-    # embeddings = client.create_embeddings(texts)
-    # print("Эмбеддинги:", embeddings)
-
     long_text = ''
     texts = ''
+
+    # Обрабатываем PDF
     with open(pdf_path, 'rb') as pdf_file:
         pdf_processor = PDFProcessor(pdf_file)
         pdf_processor.process_pdf(start_page=0, end_page=pdf_processor.pages)
         for page_content in pdf_processor.extract():
             long_text += f"{page_content}\n"
 
+    # Разбиваем текст на чанки
     chunks = client.split_text_into_chunks(long_text, chunk_size=client.max_tokens)
-    print("Количество страниц:", len(chunks))
+    print(f"Количество чанков: {len(chunks)}")
+
+    # Список для хранения уникальных эмбеддингов
+    new_embeddings = []
 
     for i, chunk in enumerate(chunks):
+        embedding = client.create_embeddings([chunk])
+        results = milvus_client.search_vectors(COLLECTION_NAME, query_vector=embedding[0], limit=1)
+        print(results)
+        if results and len(results) > 0 and results[0]['distance'] > 0.9:
+            print(f"Эмбеддинг уже существует в Milvus.\n{results[0]}")
+        else:
+            new_embeddings.append(embedding[0])
+            print('создан новый Эмбеддинг')
+
         print(f"--------- Page {i + 1} ----------")
         response = await client.send_message(chunk)
         texts += response
 
+    # Вставляем все новые эмбеддинги разом
+    if new_embeddings:
+        milvus_client.insert_vectors(COLLECTION_NAME, new_embeddings)
+        print(f"Вставлено {len(new_embeddings)} новых эмбеддингов")
+
     pdf.add_section(Section(texts, toc=False))
-    pdf.save("result_1.pdf")
+    pdf.save("results/Хобл.pdf")
+
+    print("PDF с результатами сохранён.")
+
+
+async def main():
+    # Настройка PromptManager и OpenAI клиента
+    manager_prompt = PromptManager()
+    system_prompt = manager_prompt.get_prompt("summary")
+
+    api_key = SecretStr(settings.openai.token)
+    client = ChatGPTClient(
+        api_key,
+        model_name="gpt-4o-mini",
+        embeddings_model_name="text-embedding-ada-002",
+        system_prompt=system_prompt,
+    )
+
+    # Настройка Milvus
+    milvus_client = MilvusClient(host=MILVUS_HOST, port=MILVUS_PORT)
+    milvus_client.create_collection(COLLECTION_NAME, dim=DIMENSION)
+    milvus_client.get_all_vectors(COLLECTION_NAME)
+
+    # Обработка PDF
+    pdf_path = "files/Хобл.pdf"
+    await process_pdf(client, milvus_client, pdf_path)
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ class OpenAI(BaseSettings):
 
 class Settings(BaseSettings):
     openai: OpenAI = OpenAI()
-    minio: Minio = Minio()
+    # minio: Minio = Minio()
 
     class Config:
         env_file = ".env"

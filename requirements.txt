@@ -12,3 +12,4 @@ markdown2
 pdfkit
 markdown-pdf
 minio
+pymilvus
