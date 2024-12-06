@@ -11,3 +11,4 @@ langchain-openai
 markdown2
 pdfkit
 markdown-pdf
+minio
