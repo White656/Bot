@@ -8,3 +8,6 @@ openai>=0.27.8
 pytesseract
 tiktoken
 langchain-openai
+markdown2
+pdfkit
+markdown-pdf

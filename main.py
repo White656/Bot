@@ -1,6 +1,6 @@
 import asyncio
 
-from PIL.XbmImagePlugin import xbm_head
+from pydantic import SecretStr
 from pydantic import SecretStr
 
 from package.openai import PromptManager
@@ -19,6 +19,7 @@ async def main():
 
     client = ChatGPTClient(
         api_key,
+        model_name='gpt-4o-mini',
         embeddings_model_name='text-embedding-ada-002',
         system_prompt=system_prompt,
     )
@@ -38,13 +39,13 @@ async def main():
 
     chunks = client.split_text_into_chunks(long_text, chunk_size=client.max_tokens)
     for i, chunk in enumerate(chunks):
-        # print(chunk)
         print("Количество токенов в части:", len(client.tokenize_text(chunk)))
-
-    for i, chunk in enumerate(chunks):
-        response = await client.send_message(chunk)
-        print(response)
-        print(f"--------- Page {i + 1} ----------")
+    print("Количество страниц:", len(chunks))
+    with open('result_2.md', 'a', encoding='utf-8') as f:
+        for i, chunk in enumerate(chunks):
+            print(f"--------- Page {i + 1} ----------")
+            response = await client.send_message(chunk)
+            f.write(f'{response}\n')
 
 
 if __name__ == "__main__":
