@@ -1,4 +1,4 @@
-from fontTools.mtiLib import bucketizeRules
+import logging
 from minio import Minio
 
 
@@ -42,6 +42,7 @@ class MinioClient(object):
                                   access_key=self._access_key,
                                   secret_key=self.__secret_key,
                                   )
+            logging.info(f'Set connection to minio by address: {self.uri} ')
         return self.__client
 
     def get_or_create_bucket(self, bucket_name: str) -> (bool, str):
@@ -74,6 +75,7 @@ class MinioClient(object):
             length=-1,  # Specify the file length, or for unknown length specify -1 for stream
             part_size=10 * 1024 * 1024  # You can adjust the part size
         )
+        logging.info(f'Upload file: {object_name} to bucket: {bucket}')
 
     def get_file_from_bucket(self, bucket_name: str, object_name: str) -> (bytes, str):
         """
@@ -99,4 +101,5 @@ class MinioClient(object):
         # Constructing a URL for the object
         url = self.connection.presigned_get_object(bucket_name, object_name)
 
+        logging.info(f'Get file: {object_name} to bucket: {bucket_name}')
         return file_data, url

@@ -1,3 +1,5 @@
+import logging
+
 from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, has_collection
 
 
@@ -43,12 +45,12 @@ class MilvusClient:
             index_params = {
                 "index_type": "HNSW",
                 "metric_type": metric_type,
-                "params": {"M": 16, "efConstruction": 200},
+                "params": {"M": 32, "efConstruction": 400},
             }
             collection.create_index(field_name="vector", index_params=index_params)
-            print(f"Коллекция '{collection_name}' успешно создана.")
+            logging.info(f"Коллекция '{collection_name}' успешно создана.")
         else:
-            print(f"Коллекция '{collection_name}' уже существует.")
+            logging.info(f"Коллекция '{collection_name}' уже существует.")
 
     def insert_vectors(self, collection_name: str, vectors: list[list[float]]):
         """
@@ -64,15 +66,15 @@ class MilvusClient:
         data = [vectors]
         collection.insert(data)
 
-        print(f"Inserted {len(vectors)} vectors into collection '{collection_name}'")
+        logging.info(f"Inserted {len(vectors)} vectors into collection '{collection_name}'")
 
-    def search_vectors(self, collection_name: str, query_vector: list[float], limit: int = 5):
+    def search_vectors(self, collection_name: str, query_vector: list[list[float]], limit: int = 5):
         """
         Search for similar vectors in a collection.
 
         Args:
             collection_name (str): The name of the collection.
-            query_vector (list[float]): The vector to search for.
+            query_vector: list((list[float])): The vector to search for.
             limit (int): The number of top results to return.
 
         Returns:
@@ -82,7 +84,7 @@ class MilvusClient:
         collection.load()
         search_params = {"metric_type": "COSINE", "params": {"ef": 50}}
         results = collection.search(
-            data=[query_vector],
+            data=query_vector,
             anns_field="vector",
             param=search_params,
             limit=limit,
@@ -91,7 +93,7 @@ class MilvusClient:
         output = [
             {"id": hit.id, "distance": hit.distance} for hits in results for hit in hits
         ]
-        print(f"Search completed. Found {len(output)} results.")
+        logging.info(f"Search completed. Found {len(output)} results.")
         return output
 
     def delete_vector(self, collection_name: str, vector_id: int):
@@ -105,7 +107,7 @@ class MilvusClient:
         collection = Collection(collection_name)
         expr = f"id == {vector_id}"
         collection.delete(expr)
-        print(f"Vector with ID {vector_id} deleted from collection '{collection_name}'")
+        logging.info(f"Vector with ID {vector_id} deleted from collection '{collection_name}'")
 
     def drop_collection(self, collection_name: str):
         """
@@ -116,7 +118,7 @@ class MilvusClient:
         """
         collection = Collection(collection_name)
         collection.drop()
-        print(f"Collection '{collection_name}' dropped.")
+        logging.info(f"Collection '{collection_name}' dropped.")
 
     def get_all_vectors(self, collection_name: str):
         """
@@ -134,5 +136,5 @@ class MilvusClient:
         # Запрашиваем все данные из коллекции
         results = collection.query(expr="id != 0", output_fields=["id", "vector"], liimit=100)
 
-        print(f"Получено {len(results)} записей из коллекции '{collection_name}'")
+        logging.info(f"Получено {len(results)} записей из коллекции '{collection_name}'")
         return results

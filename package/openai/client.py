@@ -1,12 +1,11 @@
+import tiktoken
+import logging
+
 from typing import List, Any, Optional
 from pydantic import SecretStr
 from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage, AIMessage
-import tiktoken
-from sqlalchemy.orm.instrumentation import manager_of_class
-
-from package.openai import PromptManager
+from langchain.schema import HumanMessage, SystemMessage
 
 
 class ChatGPTClient:
@@ -127,6 +126,7 @@ class ChatGPTClient:
                     tokenizer=self.embeddings_tokenizer,
                 )
                 valid_texts.extend(chunks)
+        logging.info('Create Embeddings.')
         return self.embeddings_model.embed_documents(valid_texts)
 
     def tokenize_text(self, text: str, tokenizer=None) -> List[int]:
@@ -148,6 +148,7 @@ class ChatGPTClient:
         if tokenizer is None:
             tokenizer = self.tokenizer
         tokens = tokenizer.encode(text)
+        logging.info('Tokenize text.')
         return tokens
 
     def split_text_into_chunks(self, text: str, chunk_size: int, tokenizer=None) -> List[str]:
@@ -173,6 +174,7 @@ class ChatGPTClient:
             chunk_tokens = tokens[i:i + chunk_size]
             chunk_text = tokenizer.decode(chunk_tokens)
             chunks.append(chunk_text)
+        logging.info('Split text to chunks.')
         return chunks
 
     async def send_message(self, message: str) -> str:
@@ -195,6 +197,7 @@ class ChatGPTClient:
         self.chat_history.append(human_message)
         assistant_message = await self.chat_model.ainvoke(self.chat_history)
         self.chat_history.append(assistant_message)
+        logging.info('Send message to OpenAI client.')
         return assistant_message.content
 
     def trim_chat_history(self, new_message_tokens_length):
@@ -235,3 +238,4 @@ class ChatGPTClient:
         if self.system_prompt:
             system_message = SystemMessage(content=self.system_prompt)
             self.chat_history.append(system_message)
+        logging.info('Reset chat history.')

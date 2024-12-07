@@ -1,6 +1,5 @@
 import asyncio
 
-from openai import embeddings
 from pydantic import SecretStr
 
 from package.milvus import MilvusClient
@@ -9,7 +8,11 @@ from package.openai.client import ChatGPTClient
 from internal.config import settings
 from package.pdf import PDFProcessor
 from markdown_pdf import MarkdownPdf
-from markdown_pdf import Section
+
+import logging
+
+# Конфигурируем логирование
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Конфигурация
 MILVUS_HOST = "localhost"
@@ -33,34 +36,28 @@ async def process_pdf(client, milvus_client, pdf_path):
         for page_content in pdf_processor.extract():
             long_text += f"{page_content}\n"
 
-    # Разбиваем текст на чанки
+    # Разбиваем текст на чанкиr
     chunks = client.split_text_into_chunks(long_text, chunk_size=client.max_tokens)
     print(f"Количество чанков: {len(chunks)}")
 
     # Список для хранения уникальных эмбеддингов
     new_embeddings = []
-
-    for i, chunk in enumerate(chunks):
-        embedding = client.create_embeddings([chunk])
-        results = milvus_client.search_vectors(COLLECTION_NAME, query_vector=embedding[0], limit=1)
-        print(results)
-        if results and len(results) > 0 and results[0]['distance'] > 0.9:
-            print(f"Эмбеддинг уже существует в Milvus.\n{results[0]}")
-        else:
-            new_embeddings.append(embedding[0])
-            print('создан новый Эмбеддинг')
-
-        print(f"--------- Page {i + 1} ----------")
-        response = await client.send_message(chunk)
-        texts += response
-
-    # Вставляем все новые эмбеддинги разом
-    if new_embeddings:
-        milvus_client.insert_vectors(COLLECTION_NAME, new_embeddings)
-        print(f"Вставлено {len(new_embeddings)} новых эмбеддингов")
-
-    pdf.add_section(Section(texts, toc=False))
-    pdf.save("results/Хобл.pdf")
+    embedding = client.create_embeddings(chunks)
+    results = milvus_client.search_vectors(COLLECTION_NAME, query_vector=embedding, limit=1)
+    for item in results:
+        print('id:', item['id'], 'distance', item['distance'])
+    # for i, chunk in enumerate(chunks):
+    #     print(f"--------- Page {i + 1} ----------")
+    #     response = await client.send_message(chunk)
+    #     texts += response
+    #
+    # # Вставляем все новые эмбеддинги разом
+    # if new_embeddings:
+    #     milvus_client.insert_vectors(COLLECTION_NAME, new_embeddings)
+    #     print(f"Вставлено {len(new_embeddings)} новых эмбеддингов")
+    #
+    # pdf.add_section(Section(texts, toc=False))
+    # pdf.save("results/Хобл.pdf")
 
     print("PDF с результатами сохранён.")
 
@@ -80,8 +77,6 @@ async def main():
 
     # Настройка Milvus
     milvus_client = MilvusClient(host=MILVUS_HOST, port=MILVUS_PORT)
-    milvus_client.create_collection(COLLECTION_NAME, dim=DIMENSION)
-    milvus_client.get_all_vectors(COLLECTION_NAME)
 
     # Обработка PDF
     pdf_path = "files/Хобл.pdf"
