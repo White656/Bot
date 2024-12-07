@@ -13,3 +13,5 @@ pdfkit
 markdown-pdf
 minio
 pymilvus
+sqlalchemy
+fastapi

@@ -6,17 +6,16 @@ from typing_extensions import NotRequired
 
 
 class ResponseExample(TypedDict):
-
     detail: NotRequired[str]
 
 
 class ResponseSchema(dict):  # noqa: WPS600
 
     def __init__(
-        self,
-        status_code: int,
-        description: str,
-        example: ResponseExample,
+            self,
+            status_code: int,
+            description: str,
+            example: ResponseExample,
     ) -> None:
         self.example = example
         self.status_code = status_code
@@ -38,10 +37,10 @@ class ResponseSchema(dict):  # noqa: WPS600
 
     @classmethod
     def schema(
-        cls,
-        status_code: int,
-        description: str,
-        example: ResponseExample,
+            cls,
+            status_code: int,
+            description: str,
+            example: ResponseExample,
     ) -> Dict[int, Dict[str, Any]]:
         return {
             status_code: {
@@ -76,4 +75,3 @@ HTTP_404_NOT_FOUND = ResponseSchema(
     description='Not Found',
     example=ResponseExample(detail='Not Found'),
 )
-
