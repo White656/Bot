@@ -11,6 +11,7 @@ from markdown_pdf import MarkdownPdf
 
 import logging
 
+print(settings.DB_URI)
 # Конфигурируем логирование
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -67,7 +68,7 @@ async def main():
     manager_prompt = PromptManager()
     system_prompt = manager_prompt.get_prompt("summary")
 
-    api_key = SecretStr(settings.openai.token)
+    api_key = SecretStr(settings.OPENAI_TOKEN)
     client = ChatGPTClient(
         api_key,
         model_name="gpt-4o-mini",
