@@ -10,7 +10,7 @@ AsyncSessionGenerator = AsyncGenerator[AsyncSession, None]
 
 
 def async_session(
-        url: str, *, wrap: Callable[..., Any] | None = None,
+        url: str, *, wrap: Callable[..., Any] | None = None,  # noqa: WPS318
 ) -> Callable[..., AsyncSessionGenerator] | AsyncContextManager[Any]:
     engine = create_async_engine(
         url, pool_pre_ping=True, future=True,
@@ -26,4 +26,4 @@ def async_session(
     return get_session if wrap is None else wrap(get_session)
 
 
-override_session = get_session, async_session(settings.DATABASE_URI)
+override_session = get_session, async_session(settings.migrations_url)

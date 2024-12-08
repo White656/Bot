@@ -9,7 +9,6 @@ from internal.config.settings import settings
 from internal.entity.base import Base
 from internal.entity.docs import Docs, MilvusDocs
 
-
 print(settings.migrations_url)
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -29,7 +28,7 @@ target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
+# my_important_option = config.get_main_option('my_important_option')
 # ... etc.
 
 
@@ -50,7 +49,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={
-            "paramstyle": "named"
+            'paramstyle': 'named'
         }
     )
 

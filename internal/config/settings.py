@@ -1,12 +1,23 @@
-from pydantic import Field, PostgresDsn
-from typing import Optional, Any, Dict
-from pydantic import field_validator
+from typing import ClassVar, Optional
+
+from pydantic import Field, PostgresDsn, field_validator
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Настройки базы данных
+    API: str = '/api'
+    DOCS: str = '/docs'
+    STARTUP: str = 'startup'
+    SHUTDOWN: str = 'shutdown'
+
+    NAME: str = 'Atlas Backend'
+    VERSION: str = '0.1.0'
+    DESCRIPTION: str = 'Atlas Backend'
+    SWAGGER_UI_PARAMETERS: ClassVar[dict] = {'filter': True, 'displayRequestDuration': True}
+    APP_CORS_ORIGINS: None = None
+
+    # Настройки базы данныхMutable default '[]' is not allowed. Use 'default_factory
     DB_HOST: str = Field(..., description='Хост для подключения к базе данных.')
     DB_PORT: int = Field(..., description='Порт для подключения к базе данных.')
     DB_USER: str = Field(..., description='Имя пользователя для доступа к базе данных.')
@@ -38,7 +49,7 @@ class Settings(BaseSettings):
             password=values.data.get('DB_PASSWORD'),
             host=values.data.get('DB_HOST'),
             port=values.data.get('DB_PORT'),
-            path=f"{values.data.get('DB_NAME')}",
+            path=str(values.data.get('DB_NAME')),
         )
 
     @property
@@ -46,10 +57,10 @@ class Settings(BaseSettings):
         # Преобразовать объект PostgresDsn в строку
         return str(self.DB_URI)
 
-    class Config:
-        env_file = ".env"
+    class Config(object):
+        env_file = '.env'
         env_file_encoding = 'utf-8'
-        extra = "ignore"
+        extra = 'ignore'
 
 
 settings = Settings()

@@ -1,11 +1,12 @@
 import logging
+
 from minio import Minio
 
 
 class MinioClient(object):
 
     def __init__(self, endpoint: str, access_key: str, secret_key: str):
-        '''
+        """
         Initializes a new instance of a class with the necessary credentials and
         endpoint configuration to perform operations.
 
@@ -14,7 +15,7 @@ class MinioClient(object):
             access_key (str): The public key required for authentication.
             secret_key (str): The private key used for secure access.
 
-        '''
+        """
         self.__secret_key = secret_key
         self._access_key = access_key
         self.uri = endpoint

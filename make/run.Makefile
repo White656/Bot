@@ -1,6 +1,6 @@
 .PHONY: run
 run: ## Run application
-	poetry run gunicorn \
+	gunicorn \
 	    --bind $(APP_HOST):$(APP_PORT_INTERNAL) \
 		--worker-class uvicorn.workers.UvicornWorker \
 		--workers $(APP_WORKERS) \
@@ -8,7 +8,6 @@ run: ## Run application
 		--chdir cmd/app \
 		main:app
 
-
 .PHONY: run-dev
-run-dev: ## Run application
-	poetry run uvicorn --app-dir cmd/app main:app --reload
+run-dev: ## Run application in development mode
+	uvicorn --app-dir cmd/app main:app --reload

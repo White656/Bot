@@ -1,6 +1,11 @@
-from pdfminer.layout import LTTextContainer, LTChar, LTRect, LTTextBoxHorizontal
-import pdfplumber
 from typing import List, Optional
+
+import pdfplumber
+from pdfminer.layout import (
+    LTChar,
+    LTTextBoxHorizontal,
+    LTTextContainer,
+)
 
 TableType = List[List[Optional[str]]]
 

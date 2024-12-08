@@ -1,14 +1,13 @@
-import tiktoken
 import logging
+from typing import Any, List, Optional
 
-from typing import List, Any, Optional
-from pydantic import SecretStr
-from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
+import tiktoken
 from langchain.schema import HumanMessage, SystemMessage
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from pydantic import SecretStr
 
 
-class ChatGPTClient:
+class ChatGPTClient(object):
     def __init__(
             self,
             api_key: SecretStr,
@@ -17,9 +16,8 @@ class ChatGPTClient:
             system_prompt: Optional[str] = None,
             mathematical_percent: Optional[int] = 20,
     ):
-        """
-        Initializes the configuration for interacting with OpenAI's GPT-4 and text
-        embedding models. It sets up the necessary components to communicate with the
+        """Initializes the configuration for interacting with OpenAI's GPT-4 and text
+        embedding models.It sets up the necessary components to communicate with the
         OpenAI API, including chat and embeddings model instances, tokenizers, and the
         system prompt if provided. The class handles token limit settings based on the
         specified models and manages initial chat history.
@@ -46,11 +44,11 @@ class ChatGPTClient:
         self.embeddings_model_name = embeddings_model_name
         self.chat_model = ChatOpenAI(
             openai_api_key=self._api_key,
-            model_name=self.model_name
+            model_name=self.model_name,
         )
         self.embeddings_model = OpenAIEmbeddings(
             openai_api_key=self._api_key,
-            model=self.embeddings_model_name
+            model=self.embeddings_model_name,
         )
         self.chat_history = []
 
@@ -94,7 +92,7 @@ class ChatGPTClient:
             # 'gpt-4o-mini': 16384,
             'gpt-4o-mini': 1900,  # специально для точного пересказа текстов.
             'gpt-4-32k': 32768,
-            'text-embedding-ada-002': 8191  # Лимит для модели эмбеддингов
+            'text-embedding-ada-002': 8191,  # Лимит для модели эмбеддингов
         }
         return model_token_limits.get(model_name, 2000)  # По умолчанию 4096, если модель не найдена
 
@@ -130,8 +128,7 @@ class ChatGPTClient:
         return self.embeddings_model.embed_documents(valid_texts)
 
     def tokenize_text(self, text: str, tokenizer=None) -> List[int]:
-        """
-        Tokenizes the input text using the specified tokenizer. If no
+        """Tokenizes the input text using the specified tokenizer. If no
         tokenizer is provided, the default one is used. The function
         returns a list of token IDs that represent the text in a format
         suitable for processing by language models.
@@ -151,7 +148,7 @@ class ChatGPTClient:
         logging.info('Tokenize text.')
         return tokens
 
-    def split_text_into_chunks(self, text: str, chunk_size: int, tokenizer=None) -> List[str]:
+    def split_text_into_chunks(self, text: str, chunk_size: int, tokenizer=None) -> List[str]:  # noqa: WPS210
         """Splits the provided text into chunks based on a specified chunk size. The text is
         tokenized using the provided tokenizer (or a default tokenizer), divided into segments
         of tokens, and then each segment is decoded back into a text chunk. This function is
@@ -178,8 +175,7 @@ class ChatGPTClient:
         return chunks
 
     async def send_message(self, message: str) -> str:
-        """
-        Sends a message to a chat model and receives a response. This function
+        """Sends a message to a chat model and receives a response. This function
         manages chat history by appending the human message and assistant
         response, and ensures that the token limit for the model is not
         exceeded before sending the message.
@@ -201,8 +197,7 @@ class ChatGPTClient:
         return assistant_message.content
 
     def trim_chat_history(self, new_message_tokens_length):
-        """
-        Trims the chat history to ensure the total number of tokens does not exceed
+        """Trims the chat history to ensure the total number of tokens does not exceed
         a predefined maximum. This function iterates through the chat history
         starting from the most recent message, adding messages to a trimmed history
         list until the token limit is reached.
@@ -225,8 +220,7 @@ class ChatGPTClient:
         self.chat_history = trimmed_history
 
     def reset_chat_history(self):
-        """
-        Manages the chat history including adding system prompts when necessary.
+        """Manages the chat history including adding system prompts when necessary.
 
         Attributes:
             chat_history (list): A list that stores the chat history.

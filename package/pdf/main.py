@@ -1,9 +1,11 @@
+from typing import Any, BinaryIO, Dict, List, Optional
+
+import pdfplumber
 import PyPDF2
 from pdfminer.high_level import extract_pages
-from pdfminer.layout import LTTextContainer, LTRect, LTPage
-import pdfplumber
-from .tools import extract_table, text_extraction, table_converter
-from typing import Dict, Any, List, Optional, BinaryIO
+from pdfminer.layout import LTPage, LTRect, LTTextContainer
+
+from .tools import extract_table, table_converter, text_extraction
 
 
 class PDFProcessor:
@@ -124,7 +126,7 @@ class PDFProcessor:
 
         Example:
             For each page in the PDF, this function will yield a formatted string in the following format:
-                "Page_X <table_text_1> <table_text_2> ... <text_line_1> <text_line_2> ..."
+                'Page_X <table_text_1> <table_text_2> ... <text_line_1> <text_line_2> ...'
         """
         for key, value in self.text_per_page.items():
             yield ' '.join(value['text_from_tables'] + value['text'])

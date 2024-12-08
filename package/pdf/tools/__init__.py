@@ -1,1 +1,1 @@
-from .formatter import extract_table, text_extraction, table_converter
+from .formatter import extract_table, table_converter, text_extraction

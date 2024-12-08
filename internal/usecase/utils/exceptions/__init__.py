@@ -4,3 +4,8 @@ from .exceptions import (
     HTTP_403_FORBIDDEN,
     HTTP_404_NOT_FOUND,
 )
+from .handlers import (
+    database_error_handler,
+    database_not_found_handler,
+    http_exception_handler,
+)
