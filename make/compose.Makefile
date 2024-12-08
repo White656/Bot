@@ -4,7 +4,7 @@ compose-build: ## Build or rebuild services
 
 .PHONY: compose-up
 compose-up: ## Create and start containers
-	docker compose -f docker/docker-compose.yml --env-file $(ENV_FILE) up -d
+	docker compose -f docker/docker-compose.yml --env-file $(ENV_FILE) up -d --build
 
 .PHONY: compose-migration
 compose-migration: ## Create and start containers
