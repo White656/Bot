@@ -16,8 +16,9 @@ class ChatGPTClient(object):
             system_prompt: Optional[str] = None,
             mathematical_percent: Optional[int] = 20,
     ):
-        """Initializes the configuration for interacting with OpenAI's GPT-4 and text
-        embedding models.It sets up the necessary components to communicate with the
+        """Initialize the configuration for interacting with OpenAI's GPT-4 and text.
+
+        embedding models. It sets up the necessary components to communicate with the
         OpenAI API, including chat and embeddings model instances, tokenizers, and the
         system prompt if provided. The class handles token limit settings based on the
         specified models and manages initial chat history.
@@ -33,7 +34,7 @@ class ChatGPTClient(object):
             system_prompt: An optional string for setting a system-level prompt
                 message. If provided, it initializes the conversation context with this
                 prompt.
-            mathematical_p: An optional integer defining a mathematical parameter,
+            mathematical_percent: An optional integer defining a mathematical parameter,
                 defaulting to 100. This parameter may be used for internal calculations
                 or configurations.
 
@@ -69,7 +70,7 @@ class ChatGPTClient(object):
         self.embeddings_max_tokens = self.get_model_token_limit(self.embeddings_model_name)
 
     def get_model_token_limit(self, model_name: str) -> int:
-        """Retrieves the token limit for a specified model.
+        """Retrieve the token limit for a specified model.
 
         This function takes a model name as input and returns the token limit
         associated with that model. It uses a predefined dictionary to map
@@ -97,7 +98,7 @@ class ChatGPTClient(object):
         return model_token_limits.get(model_name, 2000)  # По умолчанию 4096, если модель не найдена
 
     def create_embeddings(self, texts: List[str]) -> List[Any]:
-        """Creates embeddings for the provided texts.
+        """Create embeddings for the provided texts.
 
         This method processes a list of texts by tokenizing each text and checking
         if the number of tokens is within the specified maximum tokens limit. If a
@@ -128,8 +129,9 @@ class ChatGPTClient(object):
         return self.embeddings_model.embed_documents(valid_texts)
 
     def tokenize_text(self, text: str, tokenizer=None) -> List[int]:
-        """Tokenizes the input text using the specified tokenizer. If no
-        tokenizer is provided, the default one is used. The function
+        """Tokenize the input text using the specified tokenizer.
+
+        If no tokenizer is provided, the default one is used. The function
         returns a list of token IDs that represent the text in a format
         suitable for processing by language models.
 
@@ -149,16 +151,18 @@ class ChatGPTClient(object):
         return tokens
 
     def split_text_into_chunks(self, text: str, chunk_size: int, tokenizer=None) -> List[str]:  # noqa: WPS210
-        """Splits the provided text into chunks based on a specified chunk size. The text is
-        tokenized using the provided tokenizer (or a default tokenizer), divided into segments
-        of tokens, and then each segment is decoded back into a text chunk. This function is
-        useful for handling large text by processing it in smaller manageable pieces.
+        """Split the provided text into chunks based on a specified chunk size.
+
+        The text is tokenized using the provided tokenizer (or a default tokenizer),
+        divided into segments of tokens, and then each segment is decoded back into a
+        text chunk. This function is useful for handling large text by processing it in
+        smaller manageable pieces.
 
         Args:
             text: The input text that needs to be chunked.
             chunk_size: The number of tokens each chunk should contain.
-            tokenizer: An optional tokenizer to be used for tokenizing the text. If no tokenizer
-                       is provided, a default tokenizer is used.
+            tokenizer: An optional tokenizer to be used for tokenizing the text. If no
+                tokenizer is provided, a default tokenizer is used.
 
         Returns:
             A list of strings where each string is a chunk of the original text.
@@ -175,8 +179,9 @@ class ChatGPTClient(object):
         return chunks
 
     async def send_message(self, message: str) -> str:
-        """Sends a message to a chat model and receives a response. This function
-        manages chat history by appending the human message and assistant
+        """Send a message to a chat model and receive a response.
+
+        This function manages chat history by appending the human message and assistant
         response, and ensures that the token limit for the model is not
         exceeded before sending the message.
 
@@ -197,10 +202,10 @@ class ChatGPTClient(object):
         return assistant_message.content
 
     def trim_chat_history(self, new_message_tokens_length):
-        """Trims the chat history to ensure the total number of tokens does not exceed
-        a predefined maximum. This function iterates through the chat history
-        starting from the most recent message, adding messages to a trimmed history
-        list until the token limit is reached.
+        """Trim the chat history to ensure the total number of tokens does not exceed a predefined maximum.
+
+        This function iterates through the chat history starting from the most recent
+        message, adding messages to a trimmed history list until the token limit is reached.
 
         Args:
             new_message_tokens_length: The number of tokens in the new message
@@ -220,7 +225,7 @@ class ChatGPTClient(object):
         self.chat_history = trimmed_history
 
     def reset_chat_history(self):
-        """Manages the chat history including adding system prompts when necessary.
+        """Manage the chat history including adding system prompts when necessary.
 
         Attributes:
             chat_history (list): A list that stores the chat history.
