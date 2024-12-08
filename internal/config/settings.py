@@ -38,12 +38,18 @@ class Settings(BaseSettings):
             password=values.data.get('DB_PASSWORD'),
             host=values.data.get('DB_HOST'),
             port=values.data.get('DB_PORT'),
-            path=f"/{values.data.get('DB_NAME')}",
+            path=f"{values.data.get('DB_NAME')}",
         )
+
+    @property
+    def migrations_url(self) -> str:
+        # Преобразовать объект PostgresDsn в строку
+        return str(self.DB_URI)
 
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'
+        extra = "ignore"
 
 
 settings = Settings()

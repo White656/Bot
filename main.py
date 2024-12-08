@@ -11,7 +11,6 @@ from markdown_pdf import MarkdownPdf
 
 import logging
 
-print(settings.DB_URI)
 # Конфигурируем логирование
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
