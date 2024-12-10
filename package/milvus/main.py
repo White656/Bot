@@ -55,9 +55,9 @@ class MilvusClient:
                 'params': {'M': 32, 'efConstruction': 400},
             }
             collection.create_index(field_name='vector', index_params=index_params)
-            logging.info(f'Коллекция '{collection_name}' успешно создана.')
+            logging.info(f'Коллекция {collection_name} успешно создана.')
         else:
-            logging.info(f'Коллекция '{collection_name}' уже существует.')
+            logging.info(f'Коллекция {collection_name} уже существует.')
 
     def insert_vectors(self, collection_name: str, vectors: list[list[float]]):
         """
@@ -73,7 +73,7 @@ class MilvusClient:
         data = [vectors]
         collection.insert(data)
 
-        logging.info(f'Inserted {len(vectors)} vectors into collection '{collection_name}'')
+        logging.info(f'Inserted {len(vectors)} vectors into collection {collection_name}')
 
     def search_vectors(self, collection_name: str, query_vector: list[list[float]], limit: int = 5):
         """
@@ -114,7 +114,7 @@ class MilvusClient:
         collection = Collection(collection_name)
         expr = f'id == {vector_id}'
         collection.delete(expr)
-        logging.info(f'Vector with ID {vector_id} deleted from collection '{collection_name}'')
+        logging.info(f'Vector with ID {vector_id} deleted from collection {collection_name}')
 
     def drop_collection(self, collection_name: str):
         """
@@ -125,7 +125,7 @@ class MilvusClient:
         """
         collection = Collection(collection_name)
         collection.drop()
-        logging.info(f'Collection '{collection_name}' dropped.')
+        logging.info(f'Collection {collection_name} dropped.')
 
     def get_all_vectors(self, collection_name: str):
         """
@@ -143,5 +143,5 @@ class MilvusClient:
         # Запрашиваем все данные из коллекции
         results = collection.query(expr='id != 0', output_fields=['id', 'vector'], liimit=100)
 
-        logging.info(f'Получено {len(results)} записей из коллекции '{collection_name}'')
+        logging.info(f'Получено {len(results)} записей из коллекции {collection_name}')
         return results

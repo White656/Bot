@@ -91,7 +91,7 @@ class ChatGPTClient(object):
             'gpt-3.5-turbo-16k': 16384,
             'gpt-4': 8192,
             # 'gpt-4o-mini': 16384,
-            'gpt-4o-mini': 1900,  # специально для точного пересказа текстов.
+            'gpt-4o-mini': 2100,  # специально для точного пересказа текстов.
             'gpt-4-32k': 32768,
             'text-embedding-ada-002': 8191,  # Лимит для модели эмбеддингов
         }
@@ -222,6 +222,12 @@ class ChatGPTClient(object):
                 total_tokens += message_tokens
             else:
                 break
+
+        # Эта проверка гарантирует, что системное сообщение присутствует в начале
+        if self.system_prompt:
+            system_message = SystemMessage(content=self.system_prompt)
+            trimmed_history.insert(0, system_message)
+
         self.chat_history = trimmed_history
 
     def reset_chat_history(self):

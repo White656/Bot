@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from markdown_pdf import MarkdownPdf
+from markdown_pdf import MarkdownPdf, Section
 from pydantic import SecretStr
 
 from internal.config import settings
@@ -32,6 +32,7 @@ async def process_pdf(client, milvus_client, pdf_path):
     with open(pdf_path, 'rb') as pdf_file:
         pdf_processor = PDFProcessor(pdf_file)
         pdf_processor.process_pdf(start_page=0, end_page=pdf_processor.pages)
+        print(pdf_processor.pages)
         for page_content in pdf_processor.extract():
             long_text += f'{page_content}\n'
 
@@ -43,20 +44,25 @@ async def process_pdf(client, milvus_client, pdf_path):
     new_embeddings = []
     embedding = client.create_embeddings(chunks)
     results = milvus_client.search_vectors(COLLECTION_NAME, query_vector=embedding, limit=1)
-    for item in results:
-        print('id:', item['id'], 'distance', item['distance'])
-    # for i, chunk in enumerate(chunks):
-    #     print(f'--------- Page {i + 1} ----------')
-    #     response = await client.send_message(chunk)
-    #     texts += response
-    #
-    # # Вставляем все новые эмбеддинги разом
-    # if new_embeddings:
-    #     milvus_client.insert_vectors(COLLECTION_NAME, new_embeddings)
-    #     print(f'Вставлено {len(new_embeddings)} новых эмбеддингов')
-    #
-    # pdf.add_section(Section(texts, toc=False))
-    # pdf.save('results/Хобл.pdf')
+
+    if not results or results[0]['distance'] > 0.9:
+        new_embeddings.append(embedding)
+    else:
+        for item in results:
+            print('id:', item['id'], 'distance', item['distance'])
+
+    for i, chunk in enumerate(chunks):
+        print(f'--------- Page {i + 1} ----------')
+        response = await client.send_message(chunk)
+        texts += response
+
+    # Вставляем все новые эмбеддинги разом
+    if new_embeddings:
+        milvus_client.insert_vectors(COLLECTION_NAME, new_embeddings)
+        print(f'Вставлено {len(new_embeddings)} новых эмбеддингов')
+
+    pdf.add_section(Section(texts, toc=False))
+    pdf.save('results/Экономика.pdf')
 
     print('PDF с результатами сохранён.')
 
@@ -64,7 +70,7 @@ async def process_pdf(client, milvus_client, pdf_path):
 async def main():
     # Настройка PromptManager и OpenAI клиента
     manager_prompt = PromptManager()
-    system_prompt = manager_prompt.get_prompt('summary')
+    system_prompt = manager_prompt.get_prompt('test')
 
     api_key = SecretStr(settings.OPENAI_TOKEN)
     client = ChatGPTClient(
@@ -78,7 +84,7 @@ async def main():
     milvus_client = MilvusClient(host=MILVUS_HOST, port=MILVUS_PORT)
 
     # Обработка PDF
-    pdf_path = 'files/Хобл.pdf'
+    pdf_path = 'files/Trudovye_resursy_predpriatia-5.pdf'
     await process_pdf(client, milvus_client, pdf_path)
 
 
