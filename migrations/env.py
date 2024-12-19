@@ -9,7 +9,6 @@ from internal.config.settings import settings
 from internal.entity.base import Base
 from internal.entity.docs import Docs, MilvusDocs
 
-print(settings.migrations_url)
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

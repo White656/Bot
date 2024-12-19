@@ -47,7 +47,7 @@ class ResponseSchema(dict):  # noqa: WPS600
                 'description': description,
                 'content': {
                     'application/json': {
-                        'example': example,
+                        'data': example,
                     },
                 },
             },
@@ -59,6 +59,12 @@ class SuccessfulResponse(Response):
     def __init__(self, status_code: int = status.HTTP_204_NO_CONTENT):
         super().__init__(status_code=status_code)
 
+
+HTTP_200_OK_REQUEST = ResponseSchema(
+    status_code=status.HTTP_200_OK,
+    description='OK',
+    example=ResponseExample(detail='OK'),
+)
 
 HTTP_400_BAD_REQUEST = ResponseSchema(
     status_code=status.HTTP_400_BAD_REQUEST,
