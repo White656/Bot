@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from internal.usecase.utils.responses import HTTP_400_BAD_REQUEST, HTTP_200_OK_REQUEST
+from internal.usecase.utils.tools import convert_size
 
 # Создаем объект Router для маршрутов данного модуля
 router = APIRouter()
@@ -34,6 +35,12 @@ async def upload_pdf(
     # Проверяем, что файл имеет расширение .pdf
     if not file.filename.endswith(".pdf"):
         return HTTP_400_BAD_REQUEST(description='Invalid file format. Expected PDF file.')
+
+    if file.size >= MAX_FILE_SIZE:
+        return HTTP_400_BAD_REQUEST(
+            description='File size exceeds the limit.',
+            detail=f'File size must be less than {MAX_FILE_SIZE / 1024} KB.',
+        )
 
     try:
         # Считываем содержимое файла
