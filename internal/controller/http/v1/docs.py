@@ -1,7 +1,6 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File
 
 from internal.usecase.utils.responses import HTTP_400_BAD_REQUEST, HTTP_200_OK_REQUEST
-from internal.usecase.utils.tools import convert_size
 
 # Создаем объект Router для маршрутов данного модуля
 router = APIRouter()

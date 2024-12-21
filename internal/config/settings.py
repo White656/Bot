@@ -1,6 +1,6 @@
 from typing import ClassVar, Optional
 
-from pydantic import Field, PostgresDsn, field_validator
+from pydantic import Field, PostgresDsn, field_validator, RedisDsn
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings
 
@@ -28,13 +28,24 @@ class Settings(BaseSettings):
     # Настройки Minio
     MINIO_HOST: str = Field('localhost', description='Minio host for set connection.')
     MINIO_PORT: int = Field(5432, description='Default port for MinIO S3 server connection.')
-    MINIO_ACCESS_TOKEN: str = Field(..., description='Minio access token.')
-    MINIO_SECRET_TOKEN: str = Field(..., description='Minio secret token.')
+    MINIO_ACCESS_KEY: str = Field(..., description='Minio access token.')
+    MINIO_SECRET_KEY: str = Field(..., description='Minio secret token.')
 
     # Настройки OpenAI
     OPENAI_TOKEN: str = Field(..., description='OpenAI API Bearer token.')
 
-    # Метод для сборки URI базы данных
+    # Настройки Redis
+    REDIS_USER: str = Field(..., description='Redis username for set connection.')
+    REDIS_PASSWORD: str = Field(..., description='Redis password for set connection.')
+    REDIS_HOST: str = Field(..., description='Redis host for set connection.')
+    REDIS_DOCKER_IP: str = Field(..., description='Redis docker IP for set connection.')
+    REDIS_PORT: int = Field(..., description='Redis port for set connection.')
+    REDIS_NAME: str = Field(..., description='Redis name for set connection.')
+
+    # Настройки Celery
+    CELERY_RESULT_BACKEND: RedisDsn | str | None = Field(None, description='Celery result backend URL.')
+    CELERY_BROKER_URL: RedisDsn | str | None = Field(None, description='Celery broker URL.')
+
     @field_validator('DB_URI', mode='before')
     @classmethod
     def assemble_db_connection(
@@ -50,6 +61,18 @@ class Settings(BaseSettings):
             host=values.data.get('DB_HOST'),
             port=values.data.get('DB_PORT'),
             path=str(values.data.get('DB_NAME')),
+        )
+
+    @field_validator('CELERY_RESULT_BACKEND', 'CELERY_BROKER_URL', mode='before')
+    @classmethod
+    def assemble_celery_connection(cls, value: str | None, values: ValidationInfo) -> str | RedisDsn:
+        return RedisDsn.build(
+            scheme='redis',
+            username=values.data.get('REDIS_USER'),
+            password=values.data.get('REDIS_PASSWORD'),
+            host=values.data.get('REDIS_DOCKER_IP'),
+            port=values.data.get('REDIS_PORT'),
+            path=str(values.data.get('REDIS_NAME')),
         )
 
     @property

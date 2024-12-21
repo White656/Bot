@@ -20,3 +20,6 @@ asyncpg>=0.29.0
 greenlet>=2.1.4
 uvicorn==0.32.1
 python-multipart
+celery==5.2.7
+flower==1.2.0
+redis
