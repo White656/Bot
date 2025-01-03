@@ -1,5 +1,5 @@
 import logging
-
+from urllib3 import PoolManager
 from minio import Minio
 
 
@@ -20,6 +20,11 @@ class MinioClient(object):
         self._access_key = access_key
         self.uri = endpoint
         self.__client: Minio | None = None
+        self._http_client = PoolManager(
+            num_pools=10,  # Максимальное количество пулов
+            maxsize=10,  # Максимальное количество одновременных подключений
+            timeout=10.0  # Таймаут для подключения в секундах (можно указать объект Timeout)
+        )
 
     @property
     def connection(self) -> Minio:
@@ -42,6 +47,8 @@ class MinioClient(object):
             self.__client = Minio(self.uri,
                                   access_key=self._access_key,
                                   secret_key=self.__secret_key,
+                                  secure=False,
+                                  http_client=self._http_client
                                   )
             logging.info(f'Set connection to minio by address: {self.uri} ')
         return self.__client
@@ -54,8 +61,10 @@ class MinioClient(object):
         Attributes:
             connection: Represents the connection to the storage service.
         """
+        logging.info(f'Get or create bucket: {bucket_name}')
         bucket = self.connection.bucket_exists(bucket_name)
         if bucket is None:
+            logging.info(f'Create bucket: {bucket_name}')
             self.connection.make_bucket(bucket_name=bucket_name)
         return bucket, bucket_name
 

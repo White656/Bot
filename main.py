@@ -32,11 +32,10 @@ async def process_pdf(client, milvus_client, pdf_path):
     with open(pdf_path, 'rb') as pdf_file:
         pdf_processor = PDFProcessor(pdf_file)
         pdf_processor.process_pdf(start_page=0, end_page=pdf_processor.pages)
-        print(pdf_processor.pages)
         for page_content in pdf_processor.extract():
             long_text += f'{page_content}\n'
 
-    # Разбиваем текст на чанкиr
+    # Разбиваем текст на чанки
     chunks = client.split_text_into_chunks(long_text, chunk_size=client.max_tokens)
     print(f'Количество чанков: {len(chunks)}')
 

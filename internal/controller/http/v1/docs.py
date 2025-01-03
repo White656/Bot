@@ -1,11 +1,20 @@
-from fastapi import APIRouter, UploadFile, File
+import uuid
+from fastapi import APIRouter, UploadFile, File, Depends
 
-from internal.usecase.utils.responses import HTTP_400_BAD_REQUEST, HTTP_200_OK_REQUEST
+from internal.config.minio import get_minio_client
+from internal.config.settings import buckets
+from internal.dto.celery import TaskRunInfo
+from internal.dto.docs import DocsCreate
+from internal.service.docs import DocsService
+from internal.usecase.utils.responses import HTTP_400_BAD_REQUEST, HTTP_200_OK_REQUEST, ResponseExample
+from package.celery.worker import process_document
+from package.minio.main import MinioClient
+from package.pdf import PDFProcessor
 
 # Создаем объект Router для маршрутов данного модуля
 router = APIRouter()
 
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_FILE_SIZE = 5 * 1024 * 10240  # 5 MB
 
 
 @router.post(
@@ -14,26 +23,32 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
     tags=["PDF Upload"])
 async def upload_pdf(
         file: UploadFile = File(...),
+        service: DocsService = Depends(DocsService),
+        minio_client: MinioClient = Depends(get_minio_client),
 ):
     """
-    Эндпоинт для загрузки и проверки PDF-файла.
-
-    Данный маршрут принимает PDF файл, проверяет его формат
-    и содержание. В случае успешной проверки возвращает сообщение
-    о валидности файла.
+    Uploads and validates a PDF file. This function checks whether a provided file is a PDF by
+    validating its MIME type and file size before uploading it to a specific bucket in Minio storage.
+    After successful upload, a success message is returned.
 
     Args:
-        file (UploadFile): Загружаемый файл, передается через форму в HTTP-запросе.
-
-    Raises:
-        HTTPException: Если формат файла не соответствует PDF или файл поврежден.
+        file (UploadFile): The PDF file to be uploaded. Must have the MIME type 'application/pdf' and
+            should not exceed the defined maximum allowed file size.
+        service (DocsService): Dependency-injected instance of DocsService for handling
+            document-related operations.
+        minio_client (MinioClient): Dependency-injected client for interacting with Minio
+            object storage.
 
     Returns:
-        dict: Сообщение о статусе проверки файла и его названии.
+        HTTP_200_OK_REQUEST: Response indicating that the file was successfully uploaded.
+
+    Raises:
+        HTTP_400_BAD_REQUEST: Raised if the file MIME type is invalid (not a PDF) or if the file size
+            exceeds the maximum allowed limit.
     """
     # Проверяем, что файл имеет расширение .pdf
-    if not file.filename.endswith(".pdf"):
-        return HTTP_400_BAD_REQUEST(description='Invalid file format. Expected PDF file.')
+    if file.content_type != "application/pdf":
+        return HTTP_400_BAD_REQUEST(description='Invalid MIME type. Expected application/pdf.')
 
     if file.size >= MAX_FILE_SIZE:
         return HTTP_400_BAD_REQUEST(
@@ -41,12 +56,21 @@ async def upload_pdf(
             detail=f'File size must be less than {MAX_FILE_SIZE / 1024} KB.',
         )
 
-    try:
-        # Считываем содержимое файла
-        contents = await file.read()
+    bucket = buckets.get('pdf')
+    object_name = f"{uuid.uuid4()}.pdf"
+    s3_briefly = f"{bucket}/{object_name}"
 
-        # Если считывание прошло успешно, возвращаем успех
-        return HTTP_200_OK_REQUEST(detail="PDF file is valid.")
-    except Exception as e:
-        # Обработка ошибок при работе с файлом (например, файл не является валидным PDF)
-        return HTTP_400_BAD_REQUEST(description=str(e))
+    minio_client.upload_file_to_bucket(
+        bucket_name=bucket,
+        file_io=file.file,
+        object_name=object_name,
+
+    )
+    doc_data = DocsCreate(
+        name=file.filename,
+        checksum=1,
+        s3_briefly=s3_briefly,
+    )
+    await service.create(doc_data)
+    # Если считывание прошло успешно, возвращаем успех
+    return HTTP_200_OK_REQUEST(description='File uploaded successfully.')

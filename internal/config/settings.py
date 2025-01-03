@@ -4,6 +4,10 @@ from pydantic import Field, PostgresDsn, field_validator, RedisDsn
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings
 
+buckets = {
+    'pdf': 'pdf-bucket',
+}
+
 
 class Settings(BaseSettings):
     API: str = '/api'
@@ -30,14 +34,10 @@ class Settings(BaseSettings):
     MINIO_PORT: int = Field(5432, description='Default port for MinIO S3 server connection.')
     MINIO_ACCESS_KEY: str = Field(..., description='Minio access token.')
     MINIO_SECRET_KEY: str = Field(..., description='Minio secret token.')
-
     # Настройки OpenAI
     OPENAI_TOKEN: str = Field(..., description='OpenAI API Bearer token.')
 
     # Настройки Redis
-    REDIS_USER: str = Field(..., description='Redis username for set connection.')
-    REDIS_PASSWORD: str = Field(..., description='Redis password for set connection.')
-    REDIS_HOST: str = Field(..., description='Redis host for set connection.')
     REDIS_DOCKER_IP: str = Field(..., description='Redis docker IP for set connection.')
     REDIS_PORT: int = Field(..., description='Redis port for set connection.')
     REDIS_NAME: str = Field(..., description='Redis name for set connection.')
@@ -68,8 +68,6 @@ class Settings(BaseSettings):
     def assemble_celery_connection(cls, value: str | None, values: ValidationInfo) -> str | RedisDsn:
         return RedisDsn.build(
             scheme='redis',
-            username=values.data.get('REDIS_USER'),
-            password=values.data.get('REDIS_PASSWORD'),
             host=values.data.get('REDIS_DOCKER_IP'),
             port=values.data.get('REDIS_PORT'),
             path=str(values.data.get('REDIS_NAME')),
