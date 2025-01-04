@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     DOCS: str = '/docs'
     STARTUP: str = 'startup'
     SHUTDOWN: str = 'shutdown'
+    COLLECTION_NAME: str = 'pdf_embeddings'
 
     NAME: str = 'Atlas Backend'
     VERSION: str = '0.1.0'

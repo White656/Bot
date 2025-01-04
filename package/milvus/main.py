@@ -69,9 +69,7 @@ class MilvusClient:
         """
         collection = Collection(collection_name)
 
-        # Поскольку IDs генерируются автоматически, передаем только векторы
-        data = [vectors]
-        collection.insert(data)
+        collection.insert(vectors)
 
         logging.info(f'Inserted {len(vectors)} vectors into collection {collection_name}')
 

@@ -178,7 +178,7 @@ class ChatGPTClient(object):
         logging.info('Split text to chunks.')
         return chunks
 
-    async def send_message(self, message: str) -> str:
+    def send_message(self, message: str) -> str:
         """Send a message to a chat model and receive a response.
 
         This function manages chat history by appending the human message and assistant
@@ -196,7 +196,7 @@ class ChatGPTClient(object):
         new_message_tokens = len(self.tokenize_text(human_message.content))
         self.trim_chat_history(new_message_tokens)
         self.chat_history.append(human_message)
-        assistant_message = await self.chat_model.ainvoke(self.chat_history)
+        assistant_message = self.chat_model.invoke(self.chat_history)
         self.chat_history.append(assistant_message)
         logging.info('Send message to OpenAI client.')
         return assistant_message.content
