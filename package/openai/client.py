@@ -97,7 +97,7 @@ class ChatGPTClient(object):
         }
         return model_token_limits.get(model_name, 2000)  # По умолчанию 4096, если модель не найдена
 
-    def create_embeddings(self, texts: List[str] | Generator[str]) -> List[Any]:
+    def create_embeddings(self, texts: List[str] | Generator) -> List[Any]:
         """Create embeddings for the provided texts.
 
         This method processes a list of texts by tokenizing each text and checking

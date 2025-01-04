@@ -2,7 +2,6 @@ version: '3.9'
 
 
 x-defaults: &default
-  restart: always
   logging:
     driver: json-file
     options:
@@ -13,7 +12,7 @@ services:
   etcd:
     <<: *default
     container_name: milvus-etcd
-    image: quay.io/coreos/etcd:v3.5.5
+    image: quay.io/coreos/etcd:v3.5.14
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
       - ETCD_AUTO_COMPACTION_RETENTION=1000
@@ -21,9 +20,9 @@ services:
       - ETCD_SNAPSHOT_COUNT=50000
     volumes:
       - etcd-storage:/etcd
-    command: etcd -advertise-client-urls=http://${ETCD_ADVERTISE_CLIENT_HOST}:${ETCD_ADVERTISE_CLIENT_PORT} -listen-client-urls http://${ETCD_LISTEN_CLIENT_HOST}:${ETCD_LISTEN_CLIENT_PORT} --data-dir /etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
     healthcheck:
-      test: [ 'CMD', 'etcdctl', 'endpoint', 'health' ]
+      test: [ "CMD", "etcdctl", "endpoint", "health" ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -33,19 +32,19 @@ services:
 
   minio:
     <<: *default
-    container_name: minio
+    container_name: milvus-minio
     image: minio/minio:latest
-    command: server --console-address ':${MINIO_WEBUI_PORT}' /data/
-    ports:
-      - '127.0.0.1:${MINIO_PORT_INTERNAL}:${MINIO_PORT}'
-      - '127.0.0.1:${MINIO_WEBUI_INTERNAL_PORT}:${MINIO_WEBUI_PORT}'
     environment:
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "127.0.0.1:${MINIO_PORT_INTERNAL}:${MINIO_PORT}"
+      - "127.0.0.1:${MINIO_WEBUI_INTERNAL_PORT}:${MINIO_WEBUI_PORT}"
     volumes:
       - minio-storage:/data
+    command: minio server /minio_data --console-address ":9001"
     healthcheck:
-      test: [ 'CMD', 'curl', '-f', 'http://localhost:${MINIO_PORT}/minio/health/live' ]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -57,17 +56,17 @@ services:
   standalone:
     <<: *default
     container_name: milvus-standalone
-    image: milvusdb/milvus:v2.5.0-beta
-    command: [ 'milvus', 'run', 'standalone' ]
+    image: milvusdb/milvus:v2.5.1
+    command: [ "milvus", "run", "standalone" ]
     security_opt:
       - seccomp:unconfined
     environment:
-      ETCD_ENDPOINTS: ${ETCD_DOCKER_IP}:${ETCD_LISTEN_CLIENT_PORT}
-      MINIO_ADDRESS: ${MINIO_DOCKER_IP}:${MINIO_PORT}
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
     volumes:
       - milvus-storage:/var/lib/milvus
     healthcheck:
-      test: [ 'CMD', 'curl', '-f', 'http://localhost:${MILVUS_API_PORT}/health' ]
+      test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
       interval: 30s
       start_period: 90s
       timeout: 20s
@@ -76,8 +75,8 @@ services:
       - '127.0.0.1:${MILVUS_GRPC_INTERNAL_PORT}:${MILVUS_GRPC_PORT}'
       - '127.0.0.1:${MILVUS_API_INTERNAL_PORT}:${MILVUS_API_PORT}'
     depends_on:
-      - 'etcd'
-      - 'minio'
+      - etcd
+      - minio
     networks:
       bot_network:
         ipv4_address: ${MILVUS_DOCKER_IP}

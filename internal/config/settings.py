@@ -41,7 +41,7 @@ class Settings(BaseSettings):
 
     # Настройки Milvus
     MILVUS_HOST: str = Field('127.0.0.1', alias='MILVUS_DOCKER_IP', description='Milvus host for set connection.')
-    MILVUS_PORT: str = Field('127.0.0.1', alias='MILVUS_PORT', description='Milvus port for set connection.')
+    MILVUS_PORT: int = Field(9091, alias='MILVUS_GRPC_PORT', description='Milvus port for set connection.')
 
     # Настройки Redis
     REDIS_HOST: str = Field('127.0.0.1', alias='REDIS_DOCKER_IP', description='Redis host for set connection.')
