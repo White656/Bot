@@ -1,6 +1,4 @@
 # Фабрика для MinioClient
-from typing import Generator
-
 from internal.config import settings
 from package.minio.main import MinioClient
 

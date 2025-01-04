@@ -82,7 +82,7 @@ async def upload_pdf(
             bucket=bucket,
             file=file.file,
         )
-        task = process_document.delay(object_name)
+        task = process_document.delay(object_name, bucket)
         task_info = TaskRunInfo(id=task.id, filename=object_name, filesize=file.size)
         return DynamicResponse.create(
             status_code=200,

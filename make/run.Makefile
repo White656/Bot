@@ -10,4 +10,4 @@ run: ## Run application
 
 .PHONY: run-dev
 run-dev: ## Run application in development mode
-	uvicorn --app-dir cmd/app main:app --reload
+	uvicorn --app-dir cmd/app main:app --reload --host 0.0.0.0

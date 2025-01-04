@@ -23,3 +23,4 @@ python-multipart
 celery==5.2.7
 flower==1.2.0
 redis
+langchain

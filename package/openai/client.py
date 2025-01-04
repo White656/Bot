@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Generator
 
 import tiktoken
 from langchain.schema import HumanMessage, SystemMessage
@@ -97,7 +97,7 @@ class ChatGPTClient(object):
         }
         return model_token_limits.get(model_name, 2000)  # По умолчанию 4096, если модель не найдена
 
-    def create_embeddings(self, texts: List[str]) -> List[Any]:
+    def create_embeddings(self, texts: List[str] | Generator[str]) -> List[Any]:
         """Create embeddings for the provided texts.
 
         This method processes a list of texts by tokenizing each text and checking

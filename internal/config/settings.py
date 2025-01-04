@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     APP_CORS_ORIGINS: None = None
 
     # Настройки базы данныхMutable default '[]' is not allowed. Use 'default_factory
-    DB_HOST: str = Field(..., description='Хост для подключения к базе данных.')
+    DB_HOST: str = Field(..., alias='DB_DOCKER_IP', description='Хост для подключения к базе данных.')
     DB_PORT: int = Field(..., description='Порт для подключения к базе данных.')
     DB_USER: str = Field(..., description='Имя пользователя для доступа к базе данных.')
     DB_PASSWORD: str = Field(..., description='Пароль для доступа к базе данных.')
@@ -32,16 +32,19 @@ class Settings(BaseSettings):
     DB_URI: Optional[PostgresDsn] = Field(None, description='URI для подключения к базе данных.')
 
     # Настройки Minio
-    MINIO_HOST: str = Field('localhost', description='Minio host for set connection.')
+    MINIO_HOST: str = Field('localhost', alias='MINIO_DOCKER_IP', description='Minio host for set connection.')
     MINIO_PORT: int = Field(5432, description='Default port for MinIO S3 server connection.')
     MINIO_ACCESS_KEY: str = Field(..., description='Minio access token.')
     MINIO_SECRET_KEY: str = Field(..., description='Minio secret token.')
     # Настройки OpenAI
     OPENAI_TOKEN: str = Field(..., description='OpenAI API Bearer token.')
 
+    # Настройки Milvus
+    MILVUS_HOST: str = Field('127.0.0.1', alias='MILVUS_DOCKER_IP', description='Milvus host for set connection.')
+    MILVUS_PORT: str = Field('127.0.0.1', alias='MILVUS_PORT', description='Milvus port for set connection.')
+
     # Настройки Redis
-    REDIS_HOST: str = Field('127.0.0.1', description='Redis host for set connection.')
-    REDIS_DOCKER_IP: str = Field(..., description='Redis docker IP for set connection.')
+    REDIS_HOST: str = Field('127.0.0.1', alias='REDIS_DOCKER_IP', description='Redis host for set connection.')
     REDIS_PORT: int = Field(..., description='Redis port for set connection.')
     REDIS_NAME: str = Field(..., description='Redis name for set connection.')
 
