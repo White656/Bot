@@ -60,17 +60,17 @@ async def upload_pdf(
     object_name = f"{uuid.uuid4()}.pdf"
     s3_briefly = f"{bucket}/{object_name}"
 
-    minio_client.upload_file_to_bucket(
-        bucket_name=bucket,
-        file_io=file.file,
-        object_name=object_name,
-
-    )
     doc_data = DocsCreate(
-        name=file.filename,
-        checksum=1,
+        name=object_name,
         s3_briefly=s3_briefly,
     )
-    await service.create(doc_data)
-    # Если считывание прошло успешно, возвращаем успех
-    return HTTP_200_OK_REQUEST(description='File uploaded successfully.')
+    try:
+        await service.transaction_to_minio(
+            minio_client=minio_client,
+            dto=doc_data,
+            bucket=bucket,
+            file=file.file,
+        )
+        return HTTP_200_OK_REQUEST(description='File uploaded successfully.')
+    except Exception as e:
+        return HTTP_400_BAD_REQUEST(description='Failed to upload file.', detail=str(e))

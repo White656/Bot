@@ -15,3 +15,4 @@ def convert_size(size: int, unit: str) -> float:
     return float("{:.2f}".format(
         size / 1024 ** 0 if unit == 'B' else 1 if unit == 'KB' else 2 if unit == 'MB' else 3 if unit == 'GB' else 4
     ))
+

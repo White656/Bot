@@ -68,6 +68,10 @@ class MinioClient(object):
             self.connection.make_bucket(bucket_name=bucket_name)
         return bucket, bucket_name
 
+    def delete_file_from_bucket(self, bucket_name: str, object_name: str) -> None:
+        _, bucket = self.get_or_create_bucket(bucket_name)
+        self.connection.remove_object(bucket_name, object_name)
+
     def upload_file_to_bucket(self, bucket_name: str, file_io, object_name: str) -> None:
         """
         Uploads a file from io format to a specified bucket in the storage service.

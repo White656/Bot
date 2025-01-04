@@ -7,8 +7,7 @@ class DocsCreate(BaseModel):
     Поля заполняются автоматически после обработки файла.
     """
     name: str  # Имя файла
-    checksum: int  # Контрольная сумма файла
     s3_briefly: str  # Путь в хранилище S3
 
     class Config:
-        orm_mode = True
+        from_attributes = True
