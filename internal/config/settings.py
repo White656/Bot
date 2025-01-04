@@ -8,6 +8,8 @@ buckets = {
     'pdf': 'pdf-bucket',
 }
 
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+
 
 class Settings(BaseSettings):
     API: str = '/api'
@@ -38,6 +40,7 @@ class Settings(BaseSettings):
     OPENAI_TOKEN: str = Field(..., description='OpenAI API Bearer token.')
 
     # Настройки Redis
+    REDIS_HOST: str = Field('127.0.0.1', description='Redis host for set connection.')
     REDIS_DOCKER_IP: str = Field(..., description='Redis docker IP for set connection.')
     REDIS_PORT: int = Field(..., description='Redis port for set connection.')
     REDIS_NAME: str = Field(..., description='Redis name for set connection.')
@@ -68,7 +71,7 @@ class Settings(BaseSettings):
     def assemble_celery_connection(cls, value: str | None, values: ValidationInfo) -> str | RedisDsn:
         return RedisDsn.build(
             scheme='redis',
-            host=values.data.get('REDIS_DOCKER_IP'),
+            host=values.data.get('REDIS_HOST'),
             port=values.data.get('REDIS_PORT'),
             path=str(values.data.get('REDIS_NAME')),
         )

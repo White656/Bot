@@ -1,15 +1,15 @@
 from typing import Any
 
-from internal.dto.base import AbstractModel
+from pydantic import BaseModel
 
 
-class CeleryTaskInfo(AbstractModel):
+class CeleryTaskInfo(BaseModel):
     id: str
     status: Any
     result: Any
 
 
-class TaskRunInfo(AbstractModel):
+class TaskRunInfo(BaseModel):
     id: str
     filename: str
     filesize: float | int

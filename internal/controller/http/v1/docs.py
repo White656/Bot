@@ -1,25 +1,35 @@
 import uuid
+
 from fastapi import APIRouter, UploadFile, File, Depends
 
 from internal.config.minio import get_minio_client
-from internal.config.settings import buckets
+from internal.config.settings import buckets, MAX_FILE_SIZE
 from internal.dto.celery import TaskRunInfo
 from internal.dto.docs import DocsCreate
 from internal.service.docs import DocsService
-from internal.usecase.utils.responses import HTTP_400_BAD_REQUEST, HTTP_200_OK_REQUEST, ResponseExample
-from package.celery.worker import process_document
+from internal.usecase.utils.responses import HTTP_400_BAD_REQUEST, HTTP_200_OK_REQUEST, DynamicResponse
 from package.minio.main import MinioClient
-from package.pdf import PDFProcessor
+from package.celery.worker import process_document
 
 # Создаем объект Router для маршрутов данного модуля
 router = APIRouter()
-
-MAX_FILE_SIZE = 5 * 1024 * 10240  # 5 MB
 
 
 @router.post(
     "/upload-pdf",
     summary="Загрузка и проверка PDF файла",
+    responses={
+        **HTTP_400_BAD_REQUEST.schema(
+            status_code=400,
+            description='Failed to upload file.',
+            example={"detail": "Invalid MIME type. Expected application/pdf."}
+        ),
+        **HTTP_200_OK_REQUEST.schema(
+            status_code=200,
+            description='Success',
+            example={"id": "1234567890", "filename": "example.pdf", "filesize": 1024}
+        ),
+    },
     tags=["PDF Upload"])
 async def upload_pdf(
         file: UploadFile = File(...),
@@ -48,10 +58,11 @@ async def upload_pdf(
     """
     # Проверяем, что файл имеет расширение .pdf
     if file.content_type != "application/pdf":
-        return HTTP_400_BAD_REQUEST(description='Invalid MIME type. Expected application/pdf.')
+        return DynamicResponse.create(status_code=400, description='Invalid MIME type. Expected application/pdf.')
 
     if file.size >= MAX_FILE_SIZE:
-        return HTTP_400_BAD_REQUEST(
+        return DynamicResponse.create(
+            status_code=400,
             description='File size exceeds the limit.',
             detail=f'File size must be less than {MAX_FILE_SIZE / 1024} KB.',
         )
@@ -71,6 +82,12 @@ async def upload_pdf(
             bucket=bucket,
             file=file.file,
         )
-        return HTTP_200_OK_REQUEST(description='File uploaded successfully.')
+        task = process_document.delay(object_name)
+        task_info = TaskRunInfo(id=task.id, filename=object_name, filesize=file.size)
+        return DynamicResponse.create(
+            status_code=200,
+            detail='Success',
+            description='File successfully uploaded.',
+            example=task_info.model_dump())
     except Exception as e:
-        return HTTP_400_BAD_REQUEST(description='Failed to upload file.', detail=str(e))
+        return DynamicResponse.create(status_code=400, detail="Bad Request", description=str(e))
