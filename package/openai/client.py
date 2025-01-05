@@ -118,7 +118,6 @@ class ChatGPTClient(object):
             if len(tokens) <= self.embeddings_max_tokens:
                 valid_texts.append(text)
             else:
-                # Разбиваем текст на части
                 chunks = self.split_text_into_chunks(
                     text,
                     self.embeddings_max_tokens,
