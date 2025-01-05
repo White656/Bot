@@ -27,3 +27,9 @@ def async_session(
 
 
 override_session = get_session, async_session(settings.migrations_url)
+
+
+def get_database_client():
+    from internal.config import settings
+    # Настраиваем создание сессии
+    return async_session(settings.migrations_url)

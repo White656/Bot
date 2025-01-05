@@ -1,13 +1,17 @@
 import uuid
+from contextlib import asynccontextmanager
 from io import BytesIO
 
 from markdown_pdf import MarkdownPdf, Section
 from celery import Celery
 
+from internal.config.database import get_database_client
 from internal.config.gpt import get_gpt_client
 from internal.config.milvus import get_milvus_client
 from internal.config.minio import get_minio_client
 from internal.config.settings import settings
+from internal.service.docs import DocsService
+from internal.service.service import Service
 from package.pdf import PDFProcessor
 
 celery = Celery(__name__, broker=str(settings.CELERY_BROKER_URL), backend=str(settings.CELERY_RESULT_BACKEND))
@@ -15,6 +19,35 @@ celery = Celery(__name__, broker=str(settings.CELERY_BROKER_URL), backend=str(se
 minio_client = get_minio_client()
 chatgpt_client = get_gpt_client()
 milvus_client = get_milvus_client()
+
+
+@asynccontextmanager
+async def get_service(service_class):
+    """
+    An asynchronous context manager for obtaining and managing a service instance.
+
+    This function is designed to provide a service instance of the specified
+    service class, utilizing a session created by the asynchronous database client.
+    It ensures proper cleanup of the session once the context is exited. This
+    function supports dependency injection by creating the service with the session
+    as its initialization parameter.
+
+    Args:
+        service_class: The class of the service to be managed. This should be a
+        subclass of `Service`.
+
+    Yields:
+        An instance of the provided `service_class`, initialized with the session.
+
+    Raises:
+        Any exceptions raised within the context will propagate back to the caller.
+    """
+    async for session in get_database_client():
+        service = service_class(session)
+        try:
+            yield service
+        finally:
+            await session.close()
 
 
 def process_pdf_and_extract(file_stream: BytesIO, start_page: int = 0):
@@ -109,20 +142,19 @@ def process_document(filename: str, bucket: str):
     # Работа с эмбеддингами и текстами
     embedding, results, embeddings_and_texts = handle_embeddings_and_texts(chunks, settings.COLLECTION_NAME)
 
-    if embeddings_and_texts is not None:
-        new_embeddings, texts = embeddings_and_texts
-        milvus_client.insert_vectors(settings.COLLECTION_NAME, new_embeddings)
+    if embeddings_and_texts is None:
+        for item in results:
+            print('id:', item['id'], 'distance:', item['distance'])
+        return 2
 
-        # Генерация PDF и загрузка в MinIO
-        pdf = MarkdownPdf(toc_level=3)
-        pdf.add_section(Section(texts, toc=False))
-        pdf.writer.close()
+    new_embeddings, texts = embeddings_and_texts
+    milvus_client.insert_vectors(settings.COLLECTION_NAME, new_embeddings)
 
-        object_name = f"{uuid.uuid4()}.pdf"
-        minio_client.upload_file_to_bucket(file_io=pdf.out_file, bucket_name=bucket, object_name=object_name)
-        return 1
+    # Генерация PDF и загрузка в MinIO
+    pdf = MarkdownPdf(toc_level=3)
+    pdf.add_section(Section(texts, toc=False))
+    pdf.writer.close()
 
-    # Логирование найденных результатов
-    for item in results:
-        print('id:', item['id'], 'distance:', item['distance'])
-    return 2
+    object_name = f"{uuid.uuid4()}.pdf"
+    minio_client.upload_file_to_bucket(file_io=pdf.out_file, bucket_name=bucket, object_name=object_name)
+    return 1

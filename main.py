@@ -16,6 +16,7 @@ DIMENSION = 1536
 async def main():
     # Настройка Milvus
     milvus_client = MilvusClient(host=MILVUS_HOST, port=MILVUS_PORT)
+    # milvus_client.drop_collection('pdf_embeddings')
     milvus_client.create_collection('pdf_embeddings', DIMENSION)
 
 

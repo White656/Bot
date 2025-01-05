@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, UploadFile, File, Depends
 
+from internal.config.database import get_database_client
 from internal.config.minio import get_minio_client
 from internal.config.settings import buckets, MAX_FILE_SIZE
 from internal.dto.celery import TaskRunInfo
