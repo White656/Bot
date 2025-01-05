@@ -1,17 +1,18 @@
 import uuid
-from contextlib import asynccontextmanager
+import asyncio
 from io import BytesIO
 
 from markdown_pdf import MarkdownPdf, Section
 from celery import Celery
 
-from internal.config.database import get_database_client
 from internal.config.gpt import get_gpt_client
 from internal.config.milvus import get_milvus_client
 from internal.config.minio import get_minio_client
-from internal.config.settings import settings
+from internal.config.settings import settings, buckets
+from internal.dto.docs import DocsCreate
+from internal.entity.docs import Docs
 from internal.service.docs import DocsService
-from internal.service.service import Service
+from internal.service.utils import get_service
 from package.pdf import PDFProcessor
 
 celery = Celery(__name__, broker=str(settings.CELERY_BROKER_URL), backend=str(settings.CELERY_RESULT_BACKEND))
@@ -129,3 +130,18 @@ def process_document(filename: str, bucket: str):
     object_name = f"{uuid.uuid4()}.pdf"
     minio_client.upload_file_to_bucket(file_io=pdf.out_file, bucket_name=bucket, object_name=object_name)
     return 1
+
+
+async def __create_docs_milvus(
+        milvus_id: int,
+        doc_name: str,
+) -> Docs:
+    async with get_service(DocsService) as docs_service:
+        bucket = buckets.get('pdf')
+        s3_briefly = f"{bucket}/{doc_name}"
+        dto_doc = DocsCreate(
+            name=doc_name,
+            s3_briefly=s3_briefly,
+        )
+        result: Docs = await docs_service.create_docs_and_milvus(dto_doc, milvus_id)
+        return result
