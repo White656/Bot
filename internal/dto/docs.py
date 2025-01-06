@@ -1,4 +1,15 @@
+from uuid import UUID
+
 from pydantic import BaseModel
+
+
+class DocsRead(BaseModel):
+    id: UUID
+    name: str
+    s3_briefly: str
+
+    class Config:
+        from_attributes = True
 
 
 class DocsCreate(BaseModel):

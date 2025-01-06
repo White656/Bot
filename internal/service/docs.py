@@ -1,6 +1,6 @@
 import uuid
 
-from internal.dto.docs import DocsCreate
+from internal.dto.docs import DocsCreate, DocsRead
 from internal.entity.docs import Docs, MilvusDocs
 from internal.service.service import Service
 from package.minio.main import MinioClient
@@ -45,7 +45,7 @@ class DocsService(Service[Docs]):
             raise e  # Перебрасываем исключение
         return instance
 
-    async def create_docs_and_milvus(self, dto: DocsCreate, milvus_ids: list[int]) -> Docs:
+    async def create_docs_and_milvus(self, dto: DocsCreate, milvus_ids: list[int]) -> str:
         """
         Creates a record in the `Docs` table and a related record in the
         `MilvusDocs` table within a single transactional context. All operations
@@ -78,4 +78,4 @@ class DocsService(Service[Docs]):
 
         # Ожидание фиксации в рамках транзакции (автоматически сделает commit в конце контекста)
 
-        return instance
+        return DocsRead.model_validate(instance).model_dump_json()

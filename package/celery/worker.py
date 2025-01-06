@@ -130,6 +130,7 @@ def process_document(filename: str, bucket: str):
     object_name = f"{uuid.uuid4()}.pdf"
     minio_client.upload_file_to_bucket(file_io=pdf.out_file, bucket_name=bucket, object_name=object_name)
     result = asyncio.run(__create_docs_milvus(ids, object_name))
+    print(result )
     return result
 
 
@@ -144,5 +145,5 @@ async def __create_docs_milvus(
             name=doc_name,
             s3_briefly=s3_briefly,
         )
-        await docs_service.create_docs_and_milvus(dto_doc, milvus_ids)
-
+        result = await docs_service.create_docs_and_milvus(dto_doc, milvus_ids)
+        return result
