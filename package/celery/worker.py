@@ -120,7 +120,7 @@ def process_document(filename: str, bucket: str):
         return 2
 
     new_embeddings, texts = embeddings_and_texts
-    milvus_client.insert_vectors(settings.COLLECTION_NAME, new_embeddings)
+    ids = milvus_client.insert_vectors(settings.COLLECTION_NAME, new_embeddings)
 
     # Генерация PDF и загрузка в MinIO
     pdf = MarkdownPdf(toc_level=3)
@@ -129,13 +129,14 @@ def process_document(filename: str, bucket: str):
 
     object_name = f"{uuid.uuid4()}.pdf"
     minio_client.upload_file_to_bucket(file_io=pdf.out_file, bucket_name=bucket, object_name=object_name)
-    return 1
+    result = asyncio.run(__create_docs_milvus(ids, object_name))
+    return result
 
 
 async def __create_docs_milvus(
-        milvus_id: int,
+        milvus_ids: list[int],
         doc_name: str,
-) -> Docs:
+):
     async with get_service(DocsService) as docs_service:
         bucket = buckets.get('pdf')
         s3_briefly = f"{bucket}/{doc_name}"
@@ -143,5 +144,5 @@ async def __create_docs_milvus(
             name=doc_name,
             s3_briefly=s3_briefly,
         )
-        result: Docs = await docs_service.create_docs_and_milvus(dto_doc, milvus_id)
-        return result
+        await docs_service.create_docs_and_milvus(dto_doc, milvus_ids)
+

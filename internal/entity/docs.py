@@ -15,6 +15,6 @@ class Docs(TimestampMixin, Base):
 
 class MilvusDocs(TimestampMixin, Base):
     id = ...
-    milvus_id = sa.Column(sa.Integer, primary_key=True)
-    docs_id = sa.Column(psql.UUID(as_uuid=True), sa.ForeignKey('docs.id'), primary_key=True, nullable=False)
+    milvus_id = sa.Column(sa.BigInteger, primary_key=True)
+    docs_id = sa.Column(psql.UUID(as_uuid=True), sa.ForeignKey('docs.id'), nullable=False)
     docs = relationship('Docs', back_populates='milvus_docs')

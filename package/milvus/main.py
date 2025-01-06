@@ -59,7 +59,7 @@ class MilvusClient:
         else:
             logging.info(f'Коллекция {collection_name} уже существует.')
 
-    def insert_vectors(self, collection_name: str, vectors: list[list[float]]):
+    def insert_vectors(self, collection_name: str, vectors: list[list[float]]) -> list[int]:
         """
         Insert vectors into a collection with auto-incremented IDs.
 
@@ -69,9 +69,12 @@ class MilvusClient:
         """
         collection = Collection(collection_name)
 
-        collection.insert(vectors)
+        mutation_result = collection.insert(vectors)
+
+        generated_ids = mutation_result.primary_keys
 
         logging.info(f'Inserted {len(vectors)} vectors into collection {collection_name}')
+        return generated_ids
 
     def search_vectors(self, collection_name: str, query_vector: list[list[float]], limit: int = 5):
         """

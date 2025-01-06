@@ -1,4 +1,4 @@
-import logging
+import uuid
 
 from internal.dto.docs import DocsCreate
 from internal.entity.docs import Docs, MilvusDocs
@@ -45,7 +45,7 @@ class DocsService(Service[Docs]):
             raise e  # Перебрасываем исключение
         return instance
 
-    async def create_docs_and_milvus(self, dto: DocsCreate, milvus_id: int) -> Docs:
+    async def create_docs_and_milvus(self, dto: DocsCreate, milvus_ids: list[int]) -> Docs:
         """
         Creates a record in the `Docs` table and a related record in the
         `MilvusDocs` table within a single transactional context. All operations
@@ -55,7 +55,7 @@ class DocsService(Service[Docs]):
         Args:
             dto (DocsCreate): Data transfer object containing attributes for the
                 `Docs` model.
-            milvus_id (int): Identifier to associate the `Docs` record with a
+            milvus_ids (list[int]): Identifier to associate the `Docs` record with a
                 `MilvusDocs` record.
 
         Raises:
@@ -65,20 +65,17 @@ class DocsService(Service[Docs]):
         Returns:
             DocsCreate: Instance of the newly created `Docs` record.
         """
-        async with self.session.begin():  # Контекст транзакции
-            try:
-                # Создаём запись в таблице Docs
-                instance = self.model(**dto.dict())
-                self.session.add(instance)
-                instance_milvus = MilvusDocs()
-                instance_milvus.docs_id = instance.id
-                instance_milvus.milvus_id = milvus_id
-                self.session.add(instance_milvus)
 
-                # Ожидание фиксации в рамках транзакции (автоматически сделает commit в конце контекста)
+        # Создаём запись в таблице Docs
+        instance = self.model(**dto.dict())
+        self.session.add(instance)
+        await self.session.commit()
+        instance_set = [
+            MilvusDocs(docs_id=instance.id, milvus_id=pk) for pk in milvus_ids
+        ]
+        self.session.add_all(instance_set)
+        await self.session.commit()
 
-            except Exception as e:
-                # Если произойдёт ошибка, транзакция автоматически откатится (rollback)
-                logging.error(f"Ошибка при создании транзакции: {e}")
-                raise
+        # Ожидание фиксации в рамках транзакции (автоматически сделает commit в конце контекста)
+
         return instance
