@@ -5,9 +5,7 @@ from io import BytesIO
 from markdown_pdf import MarkdownPdf, Section
 from celery import Celery
 
-from internal.config.gpt import get_gpt_client
-from internal.config.milvus import get_milvus_client
-from internal.config.minio import get_minio_client
+from internal.config import get_milvus_client, get_gpt_client, get_minio_client
 from internal.config.settings import settings, buckets
 from internal.dto.docs import DocsCreate, MilvusDocsRead
 from internal.service.docs import DocsService, MilvusDocsService

@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from internal.config.database import get_database_client
+from internal.config.modules.database import get_database_client
 
 
 @asynccontextmanager

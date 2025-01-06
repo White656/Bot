@@ -2,7 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import DBAPIError, NoResultFound
 
-from internal.config import database, settings
+from internal.config import settings
+from internal.config.modules import database
 from internal.controller.http.router import api_router
 from internal.usecase.utils import (
     database_error_handler,
