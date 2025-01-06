@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -54,3 +55,38 @@ class MilvusDocsCreate(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MilvusDocsRead(BaseModel):
+    """
+    Represents a model for linking Milvus entries with document data.
+
+    This class is used to represent a relationship between a Milvus entry and
+    its corresponding document data. It contains references to the Milvus ID,
+    a unique document identifier (UUID), and optionally, the associated
+    document data. It is primarily intended for use as part of a database
+    model or data-access-layer structure.
+
+    Attributes:
+        milvus_id: int
+            The ID representing the entry in the Milvus system.
+        docs_id: UUID
+            The universally unique identifier (UUID) representing the
+            associated document.
+        docs: Optional[DocsRead]
+            The optional data associated with the document referenced by
+            the docs_id.
+
+    Config:
+        from_attributes: bool
+            Enables mapping model attributes directly from an instance.
+        arbitrary_types_allowed: bool
+            Permits arbitrary types for properties in the model.
+    """
+    milvus_id: int
+    docs_id: UUID  # UUID для внешнего ключа
+    docs: Optional[DocsRead] = None  # Связанные данные из таблицы Docs
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True

@@ -1,5 +1,5 @@
-import uuid
-
+import sqlalchemy as sa
+from sqlalchemy.orm import selectinload
 from internal.dto.docs import DocsCreate, DocsRead
 from internal.entity.docs import Docs, MilvusDocs
 from internal.service.service import Service
@@ -79,3 +79,28 @@ class DocsService(Service[Docs]):
         # Ожидание фиксации в рамках транзакции (автоматически сделает commit в конце контекста)
 
         return DocsRead.model_validate(instance).model_dump_json()
+
+
+class MilvusDocsService(Service[MilvusDocs]):
+
+    async def get_one_or_none(self, milvus_id: int, *where, **filter_by):
+        """
+        Retrieve a single record based on the given conditions or return None if no matching record is found.
+
+        The method executes a database query using SQLAlchemy to select a record from the model
+        based on the milvus_id, optional filtering conditions, and optional filtering parameters.
+        It allows for a flexible query construction using where clauses and filter_by conditions.
+
+        Args:
+            milvus_id (int): The unique identifier to filter the record by.
+            *where: Additional positional filtering conditions to apply to the query.
+            **filter_by: Additional named parameters for filtering the query.
+
+        Returns:
+            The selected scalar record if it exists, otherwise None.
+        """
+        return await self.session.scalar(
+            sa.select(self.model).options(selectinload(MilvusDocs.docs)).filter_by(
+                milvus_id=milvus_id, **filter_by,
+            ).where(*where),
+        )

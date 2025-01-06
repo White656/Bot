@@ -9,9 +9,8 @@ from internal.config.gpt import get_gpt_client
 from internal.config.milvus import get_milvus_client
 from internal.config.minio import get_minio_client
 from internal.config.settings import settings, buckets
-from internal.dto.docs import DocsCreate
-from internal.entity.docs import Docs
-from internal.service.docs import DocsService
+from internal.dto.docs import DocsCreate, MilvusDocsRead
+from internal.service.docs import DocsService, MilvusDocsService
 from internal.service.utils import get_service
 from package.pdf import PDFProcessor
 
@@ -115,9 +114,11 @@ def process_document(filename: str, bucket: str):
     embedding, results, embeddings_and_texts = handle_embeddings_and_texts(chunks, settings.COLLECTION_NAME)
 
     if embeddings_and_texts is None:
-        for item in results:
-            print('id:', item['id'], 'distance:', item['distance'])
-        return 2
+        for milvus_object in results:
+            result = asyncio.run(__get_docs_milvus(milvus_object['id']))
+            if result is None:
+                continue
+            return result
 
     new_embeddings, texts = embeddings_and_texts
     ids = milvus_client.insert_vectors(settings.COLLECTION_NAME, new_embeddings)
@@ -126,11 +127,10 @@ def process_document(filename: str, bucket: str):
     pdf = MarkdownPdf(toc_level=3)
     pdf.add_section(Section(texts, toc=False))
     pdf.writer.close()
-
+    pdf.out_file.seek(0)
     object_name = f"{uuid.uuid4()}.pdf"
     minio_client.upload_file_to_bucket(file_io=pdf.out_file, bucket_name=bucket, object_name=object_name)
     result = asyncio.run(__create_docs_milvus(ids, object_name))
-    print(result )
     return result
 
 
@@ -147,3 +147,9 @@ async def __create_docs_milvus(
         )
         result = await docs_service.create_docs_and_milvus(dto_doc, milvus_ids)
         return result
+
+
+async def __get_docs_milvus(milvus_id: int):
+    async with get_service(MilvusDocsService) as milvus_docs_service:
+        result = await milvus_docs_service.get_one_or_none(milvus_id)
+        return MilvusDocsRead.model_validate(result).model_dump_json()
