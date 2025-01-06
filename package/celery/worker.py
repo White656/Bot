@@ -76,30 +76,26 @@ def handle_embeddings_and_texts(chunks: list, collection_name: str):
 
 
 @celery.task(name='process_document')
-def process_document(filename: str, bucket: str):
+def process_document(filename: str, bucket: str, user_id: int):
     """
-    Processes a document, extracts text, generates embeddings, and stores the processed
-    output in a storage bucket.
-
-    This task performs the following steps:
-    1. Retrieves the file from a specified storage bucket (MinIO).
-    2. Processes the file (PDF) to extract textual data.
-    3. Splits the extracted text into manageable chunks.
-    4. Handles embeddings for the text chunks, saving new embeddings when applicable.
-    5. Generates a PDF from the processed text and uploads it back into the storage bucket.
-    6. Logs results of the processing step where applicable.
+    Asynchronous task for processing a document file stored in a MinIO bucket. The task includes
+    retrieval of the file, processing it to extract text, preparing embeddings for the text chunks,
+    and storing the final results in a Milvus database. Additionally, it generates a new PDF file
+    from the processed text and uploads it back to a specified MinIO bucket.
 
     Args:
-        filename: str
-            The name of the file to process, located in the specified bucket.
-        bucket: str
-            The name of the storage bucket containing the file.
+        filename (str): Name of the file to be processed from the MinIO bucket.
+        bucket (str): Name of the MinIO bucket where the file is stored.
+        user_id (int): ID of the user processing the document.
 
     Returns:
-        int
-            Returns 1 if embeddings and text processing lead to a new PDF being created and
-            uploaded. Returns 2 if no new embeddings and text were generated, and only
-            logging was performed.
+        dict: A dictionary representing the result created in the Milvus database.
+
+    Raises:
+        KeyError: Raised in case of unexpected missing buckets during operations.
+        StorageException: Raised on failure to interact with MinIO client.
+        ProcessingException: Raised for any issues in text processing or PDF creation.
+        DatabaseException: Raised for errors occurring during interactions with Milvus.
     """
     file, _ = minio_client.get_file_from_bucket(bucket_name=bucket, object_name=filename)
     file_stream = BytesIO(file)
@@ -118,7 +114,7 @@ def process_document(filename: str, bucket: str):
             result = asyncio.run(__get_docs_milvus(milvus_object['id']))
             if result is None:
                 continue
-            return result
+            return result, user_id
 
     new_embeddings, texts = embeddings_and_texts
     ids = milvus_client.insert_vectors(settings.COLLECTION_NAME, new_embeddings)
@@ -132,7 +128,7 @@ def process_document(filename: str, bucket: str):
     new_bucket = buckets.get('pdf')
     minio_client.upload_file_to_bucket(file_io=pdf.out_file, bucket_name=new_bucket, object_name=object_name)
     result = asyncio.run(__create_docs_milvus(ids, object_name, new_bucket))
-    return result
+    return result, user_id
 
 
 async def __create_docs_milvus(

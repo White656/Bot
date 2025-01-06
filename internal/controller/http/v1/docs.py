@@ -33,29 +33,31 @@ router = APIRouter()
     },
     tags=["PDF Upload"])
 async def upload_pdf(
+        user_id: int,
         file: UploadFile = File(...),
         service: DocsService = Depends(DocsService),
         minio_client: MinioClient = Depends(get_minio_client),
 ):
     """
-    Uploads and validates a PDF file. This function checks whether a provided file is a PDF by
-    validating its MIME type and file size before uploading it to a specific bucket in Minio storage.
-    After successful upload, a success message is returned.
+    Handles the upload of a PDF file, validates its MIME type and size, and stores
+    the file in a specified bucket. The function initiates a background task for
+    processing the uploaded document and returns a response with task details or
+    an appropriate error message if validation or file upload fails.
 
     Args:
-        file (UploadFile): The PDF file to be uploaded. Must have the MIME type 'application/pdf' and
-            should not exceed the defined maximum allowed file size.
-        service (DocsService): Dependency-injected instance of DocsService for handling
-            document-related operations.
-        minio_client (MinioClient): Dependency-injected client for interacting with Minio
-            object storage.
+        user_id (int): The ID of the user uploading the file.
+        file (UploadFile): An uploaded file object to be validated and processed.
+        service (DocsService): A dependency injection providing access to the
+            document service.
+        minio_client (MinioClient): A dependency injection providing access to
+            the MinIO client.
 
     Returns:
-        HTTP_200_OK_REQUEST: Response indicating that the file was successfully uploaded.
-
-    Raises:
-        HTTP_400_BAD_REQUEST: Raised if the file MIME type is invalid (not a PDF) or if the file size
-            exceeds the maximum allowed limit.
+        DynamicResponse: A dynamic response indicating the result of the request.
+        On success (200): Includes task information, target file name, and
+            file size in task details.
+        On failure (400): Includes details of the failure and corresponding
+            messages such as MIME type verification or file size violations.
     """
     # Проверяем, что файл имеет расширение .pdf
     if file.content_type != "application/pdf":
@@ -68,6 +70,7 @@ async def upload_pdf(
             detail=f'File size must be less than {MAX_FILE_SIZE / 1024} KB.',
         )
 
+    print(user_id)
     bucket = buckets.get('tmp')
     object_name = f"{uuid.uuid4()}.pdf"
     s3_briefly = f"{bucket}/{object_name}"
@@ -83,7 +86,7 @@ async def upload_pdf(
             bucket=bucket,
             file=file.file,
         )
-        task = process_document.delay(object_name, bucket)
+        task = process_document.delay(object_name, bucket, user_id)
         task_info = TaskRunInfo(id=task.id, filename=object_name, filesize=file.size)
         return DynamicResponse.create(
             status_code=200,
