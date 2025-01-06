@@ -68,7 +68,7 @@ async def upload_pdf(
             detail=f'File size must be less than {MAX_FILE_SIZE / 1024} KB.',
         )
 
-    bucket = buckets.get('pdf')
+    bucket = buckets.get('tmp')
     object_name = f"{uuid.uuid4()}.pdf"
     s3_briefly = f"{bucket}/{object_name}"
 

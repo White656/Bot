@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings
 
 buckets = {
     'pdf': 'pdf-bucket',
+    'tmp': 'tmp'
 }
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
