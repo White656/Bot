@@ -18,4 +18,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app/
 
 # Указать команду для запуска приложения (замените на вашу команду)
-CMD ["make", "run-dev"]
+CMD ["make", "run"]

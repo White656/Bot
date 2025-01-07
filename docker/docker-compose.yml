@@ -154,7 +154,7 @@ services:
       - minio
       - etcd
     volumes:
-      - /Users/kirill.khorkov/PycharmProjects/Bot:/app
+      - ${BACKEND_PATH}:/app
     networks:
       bot_network:
         ipv4_address: ${BACKEND_DOCKER_IP}
