@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import DBAPIError, NoResultFound
 
@@ -10,6 +10,7 @@ from internal.usecase.utils import (
     database_not_found_handler,
     http_exception_handler,
 )
+from internal.usecase.utils.responses import DynamicResponse
 
 
 def create_app() -> FastAPI:
@@ -32,6 +33,38 @@ def create_app() -> FastAPI:
             allow_methods=['*'],
             allow_headers=['*'],
         )
+
+    @app.middleware("http")
+    async def check_header(request: Request, call_next):
+        """
+        Function to create and configure a FastAPI application instance.
+
+        This function sets up the FastAPI application and adds necessary configurations, such as the
+        middleware used for validating specific HTTP headers. The middleware checks for the existence
+        and correctness of a required header key and value in all incoming requests. If the header is
+        missing or invalid, the request is rejected with a 403 status code and an appropriate error
+        message is returned.
+
+        Returns:
+            An instance of the FastAPI application with the defined middleware applied.
+
+        Raises:
+            HTTPException: When the required header key is not present or contains an invalid value.
+        """
+        if settings.DEBUG:
+            return await call_next(request)
+        required_header_key = "X-Admin-Header"
+        required_header_value = settings.ADMIN_KEY
+
+        if request.headers.get(required_header_key) != required_header_value:
+            return DynamicResponse.create(
+                status_code=403,
+                description='Invalid or missing header',
+                detail='Forbidden',
+            )
+
+        response = await call_next(request)
+        return response
 
     app.include_router(api_router, prefix=settings.API)
     app.dependency_overrides.setdefault(*database.override_session)

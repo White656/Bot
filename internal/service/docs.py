@@ -1,3 +1,5 @@
+from typing import Dict, Any
+
 import sqlalchemy as sa
 from sqlalchemy.orm import selectinload
 from internal.dto.docs import DocsCreate, DocsRead
@@ -45,7 +47,7 @@ class DocsService(Service[Docs]):
             raise e  # Перебрасываем исключение
         return instance
 
-    async def create_docs_and_milvus(self, dto: DocsCreate, milvus_ids: list[int]) -> str:
+    async def create_docs_and_milvus(self, dto: DocsCreate, milvus_ids: list[int]) -> dict[str, Any]:
         """
         Creates a record in the `Docs` table and a related record in the
         `MilvusDocs` table within a single transactional context. All operations
@@ -78,7 +80,7 @@ class DocsService(Service[Docs]):
 
         # Ожидание фиксации в рамках транзакции (автоматически сделает commit в конце контекста)
 
-        return DocsRead.model_validate(instance).model_dump_json()
+        return DocsRead.model_validate(instance).model_dump()
 
 
 class MilvusDocsService(Service[MilvusDocs]):

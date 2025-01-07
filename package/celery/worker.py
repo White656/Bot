@@ -10,6 +10,7 @@ from internal.config.settings import settings, buckets
 from internal.dto.docs import DocsCreate, MilvusDocsRead
 from internal.service.docs import DocsService, MilvusDocsService
 from internal.service.utils import get_service
+from package.celery.tasks import MyTaskWithSuccess
 from package.pdf import PDFProcessor
 
 celery = Celery(__name__, broker=str(settings.CELERY_BROKER_URL), backend=str(settings.CELERY_RESULT_BACKEND))
@@ -73,8 +74,8 @@ def handle_embeddings_and_texts(chunks: list, collection_name: str):
     return embedding, results, (new_embeddings, texts)
 
 
-@celery.task(name='process_document')
-def process_document(filename: str, bucket: str, user_id: int):
+@celery.task(base=MyTaskWithSuccess, name='process_document')
+def process_document(filename: str, bucket: str, user_id: str):
     """
     Asynchronous task for processing a document file stored in a MinIO bucket. The task includes
     retrieval of the file, processing it to extract text, preparing embeddings for the text chunks,
@@ -84,7 +85,7 @@ def process_document(filename: str, bucket: str, user_id: int):
     Args:
         filename (str): Name of the file to be processed from the MinIO bucket.
         bucket (str): Name of the MinIO bucket where the file is stored.
-        user_id (int): ID of the user processing the document.
+        user_id (str): ID of the user processing the document.
 
     Returns:
         dict: A dictionary representing the result created in the Milvus database.
@@ -112,7 +113,7 @@ def process_document(filename: str, bucket: str, user_id: int):
             result = asyncio.run(__get_docs_milvus(milvus_object['id']))
             if result is None:
                 continue
-            return result, user_id
+            return result, user_id, result['docs']['s3_briefly']
 
     new_embeddings, texts = embeddings_and_texts
     ids = milvus_client.insert_vectors(settings.COLLECTION_NAME, new_embeddings)
@@ -126,7 +127,7 @@ def process_document(filename: str, bucket: str, user_id: int):
     new_bucket = buckets.get('pdf')
     minio_client.upload_file_to_bucket(file_io=pdf.out_file, bucket_name=new_bucket, object_name=object_name)
     result = asyncio.run(__create_docs_milvus(ids, object_name, new_bucket))
-    return result, user_id
+    return result, user_id, result['s3_briefly']
 
 
 async def __create_docs_milvus(
@@ -147,4 +148,4 @@ async def __create_docs_milvus(
 async def __get_docs_milvus(milvus_id: int):
     async with get_service(MilvusDocsService) as milvus_docs_service:
         result = await milvus_docs_service.get_one_or_none(milvus_id)
-        return MilvusDocsRead.model_validate(result).model_dump_json()
+        return MilvusDocsRead.model_validate(result).model_dump()

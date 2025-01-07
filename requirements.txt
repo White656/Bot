@@ -25,3 +25,5 @@ flower==1.2.0
 redis
 langchain
 gunicorn
+aiogram==3.17.0
+flask==3.1.0

@@ -35,14 +35,14 @@ services:
     container_name: milvus-minio
     image: minio/minio:latest
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - "127.0.0.1:${MINIO_PORT_INTERNAL}:${MINIO_PORT}"
       - "127.0.0.1:${MINIO_WEBUI_INTERNAL_PORT}:${MINIO_WEBUI_PORT}"
     volumes:
       - minio-storage:/data
-    command: minio server /minio_data --console-address ":9001"
+    command: minio server /data --console-address ":9001"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
@@ -51,7 +51,20 @@ services:
     networks:
       bot_network:
         ipv4_address: ${MINIO_DOCKER_IP}
-
+  mc:
+    image: minio/minio:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      /usr/bin/mc anonymous set download myminio/a-bucket;
+      /usr/bin/mc anonymous set download myminio/tmp;
+      /usr/bin/mc anonymous set download myminio/pdf-bucket;
+      "
+    networks:
+      bot_network:
+        ipv4_address: ${MC_DOCKER_IP}
 
   standalone:
     <<: *default
@@ -63,6 +76,8 @@ services:
     environment:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
     volumes:
       - milvus-storage:/var/lib/milvus
     healthcheck:

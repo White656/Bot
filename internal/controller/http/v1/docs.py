@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, UploadFile, File, Depends, Form
 
 from internal.config.modules.minio import get_minio_client
 from internal.config.settings import buckets, MAX_FILE_SIZE
@@ -32,8 +32,8 @@ router = APIRouter()
     },
     tags=["PDF Upload"])
 async def upload_pdf(
-        user_id: int,
-        file: UploadFile = File(...),
+        user_id: str = Form(...),  # user_id приходит из формы
+        file: UploadFile = File(...),  #
         service: DocsService = Depends(DocsService),
         minio_client: MinioClient = Depends(get_minio_client),
 ):
@@ -44,7 +44,7 @@ async def upload_pdf(
     an appropriate error message if validation or file upload fails.
 
     Args:
-        user_id (int): The ID of the user uploading the file.
+        user_id (str): The ID of the user uploading the file.
         file (UploadFile): An uploaded file object to be validated and processed.
         service (DocsService): A dependency injection providing access to the
             document service.
@@ -69,7 +69,6 @@ async def upload_pdf(
             detail=f'File size must be less than {MAX_FILE_SIZE / 1024} KB.',
         )
 
-    print(user_id)
     bucket = buckets.get('tmp')
     object_name = f"{uuid.uuid4()}.pdf"
     s3_briefly = f"{bucket}/{object_name}"

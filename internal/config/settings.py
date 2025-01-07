@@ -24,7 +24,8 @@ class Settings(BaseSettings):
     DESCRIPTION: str = 'Atlas Backend'
     SWAGGER_UI_PARAMETERS: ClassVar[dict] = {'filter': True, 'displayRequestDuration': True}
     APP_CORS_ORIGINS: None = None
-
+    ADMIN_KEY: str = Field('234df$13r', description='Key for get admin access.')
+    DEBUG: bool = Field(False, description='Debug mode.')
     # Настройки базы данныхMutable default '[]' is not allowed. Use 'default_factory
     DB_HOST: str = Field(..., alias='DB_DOCKER_IP', description='Хост для подключения к базе данных.')
     DB_PORT: int = Field(..., description='Порт для подключения к базе данных.')
@@ -53,6 +54,8 @@ class Settings(BaseSettings):
     # Настройки Celery
     CELERY_RESULT_BACKEND: RedisDsn | str | None = Field(None, description='Celery result backend URL.')
     CELERY_BROKER_URL: RedisDsn | str | None = Field(None, description='Celery broker URL.')
+
+    TELEGRAM_WEBHOOK: str = Field('https://localhost', description='Telegram webhook for send data.')
 
     @field_validator('DB_URI', mode='before')
     @classmethod
