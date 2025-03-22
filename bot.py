@@ -62,7 +62,7 @@ async def cmd_start_handler(message: types.Message, state: FSMContext):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="Пересказ", callback_data="retell"),
-            InlineKeyboardButton(text="Лекции по вопросам", callback_data="lectures")
+            InlineKeyboardButton(text="Лекции по вопросам", callback_data="test")
         ],
         [
             InlineKeyboardButton(text="Вопросы по лекциям", callback_data="questions"),
@@ -77,7 +77,7 @@ async def cmd_start_handler(message: types.Message, state: FSMContext):
 #    Срабатывает и в waiting_for_action, и в waiting_for_pdf.
 
 @router.callback_query(
-    F.data.in_({"retell", "lectures", "questions", "translate"}),
+    F.data.in_({"retell", "test", "questions", "translate"}),
     StateFilter(Form.waiting_for_action, Form.waiting_for_pdf),
 )
 async def process_action_callback(callback_query: types.CallbackQuery, state: FSMContext):
@@ -88,14 +88,14 @@ async def process_action_callback(callback_query: types.CallbackQuery, state: FS
 
     # Собираем новую клавиатуру (галочки)
     retell_text = "✅ Пересказ" if action == "retell" else "Пересказ"
-    lectures_text = "✅ Лекции по вопросам" if action == "lectures" else "Лекции по вопросам"
+    lectures_text = "✅ Лекции по вопросам" if action == "test" else "Лекции по вопросам"
     questions_text = "✅ Вопросы по лекциям" if action == "questions" else "Вопросы по лекциям"
     translate_text = "✅ Перевод" if action == "translate" else "Перевод"
 
     new_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text=retell_text, callback_data="retell"),
-            InlineKeyboardButton(text=lectures_text, callback_data="lectures")
+            InlineKeyboardButton(text=lectures_text, callback_data="test")
         ],
         [
             InlineKeyboardButton(text=questions_text, callback_data="questions"),
@@ -140,7 +140,6 @@ async def process_pdf_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
     selected_action = data.get("selected_action", "no_action")
 
-    # Скачиваем файл с Telegram
     file_info = await bot.get_file(document.file_id)
     file_bytes = await bot.download_file(file_info.file_path)
 
@@ -153,6 +152,7 @@ async def process_pdf_handler(message: types.Message, state: FSMContext):
         content_type="application/pdf"
     )
     form_data.add_field(name="user_id", value=str(user_id))
+    form_data.add_field(name="prompt_type", value=selected_action)
     # Если нужно, можно передать и действие
     # form_data.add_field(name="action", value=selected_action)
 

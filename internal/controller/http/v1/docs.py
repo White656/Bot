@@ -33,6 +33,7 @@ router = APIRouter()
     tags=["PDF Upload"])
 async def upload_pdf(
         user_id: str = Form(...),  # user_id приходит из формы
+        prompt_type: str = Form(...),
         file: UploadFile = File(...),  #
         service: DocsService = Depends(DocsService),
         minio_client: MinioClient = Depends(get_minio_client),
@@ -50,6 +51,7 @@ async def upload_pdf(
             document service.
         minio_client (MinioClient): A dependency injection providing access to
             the MinIO client.
+        prompt_type (str): The type of the prompt.
 
     Returns:
         DynamicResponse: A dynamic response indicating the result of the request.
@@ -84,7 +86,7 @@ async def upload_pdf(
             bucket=bucket,
             file=file.file,
         )
-        task = process_document.delay(object_name, bucket, user_id)
+        task = process_document.delay(object_name, bucket, user_id, prompt_type)
         task_info = TaskRunInfo(id=task.id, filename=object_name, filesize=file.size)
         return DynamicResponse.create(
             status_code=200,

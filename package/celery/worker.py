@@ -43,7 +43,7 @@ def process_pdf_and_extract(file_stream: BytesIO, start_page: int = 0):
     return '\n'.join(pdf_processor.extract())
 
 
-def handle_embeddings_and_texts(chunks: list, collection_name: str):
+def handle_embeddings_and_texts(chunks: list, collection_name: str, prompt_type: str):
     """
     Handles the embedding creation from chunks, searches for matching vectors in
     Milvus storage, and processes text data from the input chunks if no sufficient
@@ -60,11 +60,15 @@ def handle_embeddings_and_texts(chunks: list, collection_name: str):
         collection_name (str): The name of the embedding collection in the Milvus
         database to perform the vector search.
 
+        prompt_type (str): The type of the prompt to be used when generating embeddings.
+
     Returns:
         Tuple: A tuple containing the generated embedding, search results from the
         Milvus database, and optionally, a tuple of new embeddings and concatenated
         processed text if no sufficient match is found.
     """
+    if prompt_type is not None:
+        chatgpt_client.system_prompt = prompt_type
     embedding = chatgpt_client.create_embeddings(chunks)
     results = milvus_client.search_vectors(collection_name, query_vector=embedding, limit=1)
     if results and results[0]['distance'] >= 0.9:
@@ -75,7 +79,7 @@ def handle_embeddings_and_texts(chunks: list, collection_name: str):
 
 
 @celery.task(base=MyTaskWithSuccess, name='process_document')
-def process_document(filename: str, bucket: str, user_id: str):
+def process_document(filename: str, bucket: str, user_id: str, prompt_type: str):
     """
     Asynchronous task for processing a document file stored in a MinIO bucket. The task includes
     retrieval of the file, processing it to extract text, preparing embeddings for the text chunks,
@@ -86,6 +90,7 @@ def process_document(filename: str, bucket: str, user_id: str):
         filename (str): Name of the file to be processed from the MinIO bucket.
         bucket (str): Name of the MinIO bucket where the file is stored.
         user_id (str): ID of the user processing the document.
+        prompt_type (str): Type of the prompt for the user to prompt.
 
     Returns:
         dict: A dictionary representing the result created in the Milvus database.
@@ -106,7 +111,10 @@ def process_document(filename: str, bucket: str, user_id: str):
     chunks = chatgpt_client.split_text_into_chunks(long_text, chunk_size=chatgpt_client.max_tokens)
 
     # Работа с эмбеддингами и текстами
-    embedding, results, embeddings_and_texts = handle_embeddings_and_texts(chunks, settings.COLLECTION_NAME)
+    embedding, results, embeddings_and_texts = handle_embeddings_and_texts(
+        chunks,
+        settings.COLLECTION_NAME,
+        prompt_type)
 
     if embeddings_and_texts is None:
         for milvus_object in results:

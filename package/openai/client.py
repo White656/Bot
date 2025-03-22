@@ -102,7 +102,7 @@ class ChatGPTClient(object):
 
         This method processes a list of texts by tokenizing each text and checking
         if the number of tokens is within the specified maximum tokens limit. If a
-        text exceeds the token limit, it splits the text into smaller chunks that
+        text exceeds the token limi, it splits the text into smaller chunks that
         fit the limit. It then generates embeddings for all valid texts or chunks
         using the specified embeddings model.
 
